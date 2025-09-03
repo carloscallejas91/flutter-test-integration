@@ -1,5 +1,4 @@
 pipeline {
-    // (CORRIGIDO) A diretiva 'agent' no topo é obrigatória pela sintaxe do Jenkins.
     agent any
 
     environment {
@@ -14,16 +13,12 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Code') {
-            // Este estágio usará o 'agent any' definido no topo.
+        stage('Checkout & Build Image') {
             steps {
+                // Etapa 1: Baixar o código
                 checkout scm
-            }
-        }
 
-        stage('Build Docker Image') {
-            // Este estágio também usará o 'agent any'.
-            steps {
+                // Etapa 2: Construir a imagem Docker
                 script {
                     echo "Construindo imagem de build..."
                     docker.build(IMAGE_NAME, '.')
@@ -31,25 +26,29 @@ pipeline {
             }
         }
 
-        stage('Build APKs') {
-            // (CORRETO) Este estágio SOBRESCREVE o agente padrão para rodar dentro do nosso container.
-            agent {
-                docker { image IMAGE_NAME }
-            }
+        stage('Build APKs inside Container') {
             steps {
                 script {
-                    echo "Construindo APKs do app e dos testes..."
-                    sh '''
-                        cd android
-                        ./gradlew clean
-                        ./gradlew app:assembleDebug assembleDebugAndroidTest
-                    '''
+                    echo "Iniciando container para construir os APKs..."
+                    // (CORRIGIDO) Usando a sintaxe 'inside' que lida melhor com os caminhos
+                    docker.image(IMAGE_NAME).inside {
+                        sh '''
+                            echo "--- Ambiente do Container ---"
+                            pwd
+                            ls -la
+                            echo "---------------------------"
+
+                            echo "Construindo APKs..."
+                            cd android
+                            ./gradlew clean
+                            ./gradlew app:assembleDebug assembleDebugAndroidTest
+                        '''
+                    }
                 }
             }
         }
 
         stage('Run Tests on Firebase Test Lab') {
-            // Este estágio volta a usar o 'agent any' padrão.
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh '''
@@ -61,7 +60,7 @@ pipeline {
                         gcloud firebase test android run \
                           --type instrumentation \
                           --app android/app/build/outputs/apk/debug/app-debug.apk \
-                          --test android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+                          --test android/app/-build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
                           --device model=pixel6,version=34,locale=pt_BR,orientation=portrait \
                           --timeout 15m
                     '''
@@ -70,7 +69,6 @@ pipeline {
         }
 
         stage('Deploy to Firebase App Distribution') {
-            // Este estágio também usa o 'agent any'.
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh '''
