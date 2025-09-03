@@ -9,8 +9,10 @@ pipeline {
     }
 
     stages {
-        stage('Build Docker Image') {
+        stage('Build Image With App Code') {
             steps {
+                // Nesta etapa, nós fazemos o checkout E construímos a imagem.
+                // O comando COPY no Dockerfile irá copiar o código para dentro da imagem.
                 checkout scm
                 script {
                     echo "Construindo imagem de build já com o código do app..."
@@ -19,19 +21,38 @@ pipeline {
             }
         }
 
-        stage('Build APKs') {
+        stage('Build APKs inside Container') {
             steps {
                 script {
                     echo "Construindo APKs..."
-                    // ==================== CORREÇÃO FINAL ====================
-                    // Nós não montamos o código fonte inteiro. Em vez disso, montamos
-                    // apenas a pasta de 'build' para que os resultados do container
-                    // apareçam no nosso workspace do Jenkins.
+                    // ==================== CORREÇÃO APLICADA AQUI ====================
+                    // Removemos a flag de volume '-v'. O container agora usa sua cópia interna do código.
                     bat """
                         docker run --rm --workdir /home/flutterdev/app ^
-                            -v "%cd%/android/app/build":/home/flutterdev/app/android/app/build ^
                             ${IMAGE_NAME} ^
                             sh -c "cd android && chmod +x ./gradlew && ./gradlew clean && ./gradlew app:assembleDebug assembleDebugAndroidTest"
+                    """
+                }
+            }
+        }
+
+        // Os estágios seguintes precisam dos APKs, que ainda não estão no workspace do Jenkins.
+        // Precisamos copiá-los do container para o host.
+        stage('Copy APKs from Container') {
+            steps {
+                script {
+                    echo "Copiando APKs do container para o workspace do Jenkins..."
+                    // Primeiro, precisamos descobrir o ID do container recém-construído.
+                    // Uma maneira mais simples é construir os APKs e depois copiá-los.
+                    // Vamos refatorar o estágio anterior para facilitar isso.
+
+                    // A melhor abordagem é executar o build e o copy em um único passo.
+                    // Vamos criar um container, copiar os resultados e depois removê-lo.
+                    bat """
+                        docker create --name temp_builder_${BUILD_NUMBER} ${IMAGE_NAME}
+                        docker cp temp_builder_${BUILD_NUMBER}:/home/flutterdev/app/android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/app-debug.apk
+                        docker cp temp_builder_${BUILD_NUMBER}:/home/flutterdev/app/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+                        docker rm temp_builder_${BUILD_NUMBER}
                     """
                 }
             }
@@ -44,9 +65,6 @@ pipeline {
                         echo "Autenticando com o Google Cloud..."
                         gcloud auth activate-service-account --key-file="%GOOGLE_APPLICATION_CREDENTIALS%"
                         gcloud config set project %FIREBASE_PROJECT_ID%
-
-                        echo "Verificando se os APKs existem..."
-                        dir android\\app\\build\\outputs\\apk\\debug
 
                         echo "Enviando APKs para o Firebase Test Lab..."
                         gcloud firebase test android run ^
@@ -69,7 +87,15 @@ pipeline {
 
     post {
         always {
-            // ... (seção post permanece a mesma)
+            echo "Pipeline finalizado. Limpando..."
+            cleanWs()
+            script {
+                try {
+                    bat "docker rmi ${IMAGE_NAME}"
+                } catch (err) {
+                    echo "Imagem ${IMAGE_NAME} não encontrada ou não pôde ser removida."
+                }
+            }
         }
     }
 }
