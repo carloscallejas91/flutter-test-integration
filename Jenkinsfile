@@ -18,6 +18,7 @@ pipeline {
                 checkout scm
                 script {
                     echo "Construindo imagem de build..."
+                    // docker.build funciona em qualquer SO
                     docker.build(IMAGE_NAME, '.')
                 }
             }
@@ -27,41 +28,53 @@ pipeline {
             steps {
                 script {
                     echo "Construindo APKs com comando 'docker run' manual..."
-                    // ==================== CORREÇÃO DEFINITIVA ====================
-                    // Usamos o comando 'docker run' explícito para ter controle total sobre os argumentos.
-                    // Isso evita que o plugin do Jenkins adicione um caminho de Windows inválido.
-                    sh """
-                        docker run --rm --workdir /home/flutterdev/app \
-                            -v "${workspace}":/home/flutterdev/app \
-                            ${IMAGE_NAME} \
+                    // (CORRIGIDO) Trocado 'sh' por 'bat' para ser compatível com o agente Windows.
+                    // A sintaxe dentro das aspas triplas é para o Prompt de Comando do Windows (cmd.exe).
+                    bat """
+                        docker run --rm --workdir /home/flutterdev/app ^
+                            -v "%cd%":/home/flutterdev/app ^
+                            ${IMAGE_NAME} ^
                             sh -c "cd android && ./gradlew clean && ./gradlew app:assembleDebug assembleDebugAndroidTest"
                     """
                 }
             }
         }
 
-        // Os estágios seguintes permanecem os mesmos...
         stage('Run Tests on Firebase Test Lab') {
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    sh '''
+                    // (CORRIGIDO) Trocado 'sh' por 'bat'
+                    bat '''
                         echo "Autenticando com o Google Cloud..."
-                        gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
-                        gcloud config set project ${FIREBASE_PROJECT_ID}
+                        gcloud auth activate-service-account --key-file="%GOOGLE_APPLICATION_CREDENTIALS%"
+                        gcloud config set project %FIREBASE_PROJECT_ID%
 
                         echo "Enviando APKs para o Firebase Test Lab..."
-                        gcloud firebase test android run \
-                          --type instrumentation \
-                          --app android/app/build/outputs/apk/debug/app-debug.apk \
-                          --test android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
-                          --device model=pixel6,version=34,locale=pt_BR,orientation=portrait \
+                        gcloud firebase test android run ^
+                          --type instrumentation ^
+                          --app android/app/build/outputs/apk/debug/app-debug.apk ^
+                          --test android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk ^
+                          --device model=pixel6,version=34,locale=pt_BR,orientation=portrait ^
                           --timeout 15m
                     '''
                 }
             }
         }
 
-        // ... (resto dos estágios 'Deploy' e 'post' permanecem iguais)
+        stage('Deploy to Firebase App Distribution') {
+            steps {
+                withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    // (CORRIGIDO) Trocado 'sh' por 'bat'
+                    bat '''
+                        echo "Testes passaram! Distribuindo APK para o grupo de QA..."
+                        gcloud firebase appdistribution apps distribute android/app/build/outputs/apk/debug/app-debug.apk ^
+                          --app %FIREBASE_APP_ID% ^
+                          --release-notes "Build %BUILD_NUMBER% via Jenkins. Testes de integração passaram." ^
+                          --groups "qa-testers"
+                    '''
+                }
+            }
+        }
     }
 
     post {
@@ -70,7 +83,8 @@ pipeline {
             cleanWs()
             script {
                 try {
-                    sh "docker rmi ${IMAGE_NAME}"
+                    // (CORRIGIDO) Trocado 'sh' por 'bat'
+                    bat "docker rmi ${IMAGE_NAME}"
                 } catch (err) {
                     echo "Imagem ${IMAGE_NAME} não encontrada ou não pôde ser removida."
                 }
