@@ -1,6 +1,6 @@
 pipeline {
-    // (REMOVIDO) A declaração de agente foi movida para dentro dos estágios.
-    // agent any
+    // (CORRIGIDO) A diretiva 'agent' no topo é obrigatória pela sintaxe do Jenkins.
+    agent any
 
     environment {
         // ID do seu projeto no Google Cloud/Firebase
@@ -15,16 +15,14 @@ pipeline {
 
     stages {
         stage('Checkout Code') {
-            // Este estágio ainda roda no agente principal (Windows)
-            agent any
+            // Este estágio usará o 'agent any' definido no topo.
             steps {
                 checkout scm
             }
         }
 
         stage('Build Docker Image') {
-            // Este estágio também roda no agente principal
-            agent any
+            // Este estágio também usará o 'agent any'.
             steps {
                 script {
                     echo "Construindo imagem de build..."
@@ -34,15 +32,13 @@ pipeline {
         }
 
         stage('Build APKs') {
-            // (AJUSTADO) Este estágio agora roda DENTRO de um container Docker.
+            // (CORRETO) Este estágio SOBRESCREVE o agente padrão para rodar dentro do nosso container.
             agent {
-                // Diz ao Jenkins para usar a imagem que acabamos de construir como o ambiente para este estágio.
                 docker { image IMAGE_NAME }
             }
             steps {
                 script {
                     echo "Construindo APKs do app e dos testes..."
-                    // Os comandos agora são executados diretamente, pois já estamos no ambiente correto.
                     sh '''
                         cd android
                         ./gradlew clean
@@ -52,9 +48,8 @@ pipeline {
             }
         }
 
-        // Os estágios seguintes não precisam rodar dentro do container, pois usam a gcloud CLI do host.
         stage('Run Tests on Firebase Test Lab') {
-            agent any
+            // Este estágio volta a usar o 'agent any' padrão.
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh '''
@@ -75,7 +70,7 @@ pipeline {
         }
 
         stage('Deploy to Firebase App Distribution') {
-            agent any
+            // Este estágio também usa o 'agent any'.
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     sh '''
@@ -95,9 +90,6 @@ pipeline {
             echo "Pipeline finalizado. Limpando..."
             cleanWs()
             script {
-                // A limpeza da imagem Docker agora é feita de forma um pouco diferente.
-                // O Jenkins pode não conseguir remover a imagem que ele mesmo usou como agente.
-                // Esta limpeza é opcional e pode ser removida se causar problemas.
                 try {
                     sh "docker rmi ${IMAGE_NAME}"
                 } catch (err) {
