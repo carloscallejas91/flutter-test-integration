@@ -15,10 +15,7 @@ pipeline {
     stages {
         stage('Checkout & Build Image') {
             steps {
-                // Etapa 1: Baixar o código
                 checkout scm
-
-                // Etapa 2: Construir a imagem Docker
                 script {
                     echo "Construindo imagem de build..."
                     docker.build(IMAGE_NAME, '.')
@@ -30,12 +27,12 @@ pipeline {
             steps {
                 script {
                     echo "Iniciando container para construir os APKs..."
-                    // (CORRIGIDO) Usando a sintaxe 'inside' que lida melhor com os caminhos
-                    docker.image(IMAGE_NAME).inside {
+                    // ==================== CORREÇÃO DEFINITIVA APLICADA AQUI ====================
+                    // Adicionamos o argumento '-w /home/flutterdev/app' para forçar o diretório de trabalho correto.
+                    docker.image(IMAGE_NAME).inside("-w /home/flutterdev/app") {
                         sh '''
                             echo "--- Ambiente do Container ---"
-                            pwd
-                            ls -la
+                            echo "Diretório atual: $(pwd)"
                             echo "---------------------------"
 
                             echo "Construindo APKs..."
@@ -48,6 +45,7 @@ pipeline {
             }
         }
 
+        // Os estágios seguintes permanecem os mesmos...
         stage('Run Tests on Firebase Test Lab') {
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
@@ -60,7 +58,7 @@ pipeline {
                         gcloud firebase test android run \
                           --type instrumentation \
                           --app android/app/build/outputs/apk/debug/app-debug.apk \
-                          --test android/app/-build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+                          --test android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
                           --device model=pixel6,version=34,locale=pt_BR,orientation=portrait \
                           --timeout 15m
                     '''
