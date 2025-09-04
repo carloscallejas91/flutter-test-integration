@@ -7,9 +7,9 @@ pipeline {
     // construído a partir do Dockerfile presente no repositório.
     agent {
         dockerfile {
-            // CORREÇÃO: Adiciona 'args' para forçar o diretório de trabalho correto dentro do container.
-            // Isso resolve problemas de incompatibilidade de path entre o host Windows e o container Linux.
-            args '-w /home/jenkins/workspace'
+            // CORREÇÃO: Usa 'customWorkspace' para definir um caminho de workspace absoluto dentro do container.
+            // Isso evita que o Jenkins passe um caminho do Windows, resolvendo o erro "invalid path".
+            customWorkspace '/home/jenkins/workspace'
             // Opcional: diretório onde o Dockerfile está localizado.
             dir '.'
         }
@@ -24,6 +24,8 @@ pipeline {
         FIREBASE_APP_ID = '1:424599350937:android:5c7fd412fffd453bcb5208'
         // ID da credencial criada no Jenkins para a chave da Conta de Serviço.
         GCP_CREDENTIALS_ID = 'firebase-service-account-key'
+        // Define o grupo de testadores no Firebase App Distribution.
+        FIREBASE_TESTER_GROUP = 'qa-team'
     }
 
     // 3. ESTÁGIOS DO PIPELINE
@@ -112,3 +114,5 @@ pipeline {
         }
     }
 }
+
+
