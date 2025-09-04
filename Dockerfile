@@ -12,8 +12,8 @@ ENV FLUTTER_CHANNEL="stable"
 ENV ANDROID_CMD_LINE_TOOLS_VERSION="11076708"
 ENV ANDROID_SDK_ROOT="/opt/android-sdk"
 ENV JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-ENV PATH="$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${FLUTTER_HOME}/bin"
 ENV FLUTTER_HOME="/opt/flutter"
+ENV PATH="$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${FLUTTER_HOME}/bin"
 
 # 1. Instalação de dependências essenciais
 # Inclui: git, ssh, wget, unzip, xz-utils (para descompactar o SDK do Flutter)
