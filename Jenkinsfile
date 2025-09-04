@@ -3,17 +3,9 @@
 
 pipeline {
     // 1. AGENTE DE EXECUÇÃO
-    // Define que o pipeline será executado dentro de um container Docker
-    // construído a partir do Dockerfile presente no repositório.
-    agent {
-        dockerfile {
-            // CORREÇÃO: Usa 'customWorkspace' para definir um caminho de workspace absoluto dentro do container.
-            // Isso evita que o Jenkins passe um caminho do Windows, resolvendo o erro "invalid path".
-            customWorkspace '/home/jenkins/workspace'
-            // Opcional: diretório onde o Dockerfile está localizado.
-            dir '.'
-        }
-    }
+    // Define que o agente principal será qualquer um disponível (neste caso, o Windows).
+    // O ambiente Docker será invocado dentro dos estágios.
+    agent any
 
     // 2. VARIÁVEIS DE AMBIENTE
     // Centraliza as configurações que podem mudar entre projetos ou ambientes.
@@ -43,41 +35,49 @@ pipeline {
         // Estágio de Build e Teste: Compila os APKs e executa os testes de integração.
         stage('Build & Test') {
             steps {
-                // 'withCredentials' injeta a chave da conta de serviço em um arquivo temporário.
-                withCredentials([file(credentialsId: "${GCP_CREDENTIALS_ID}", variable: 'GCP_KEY_FILE')]) {
-                    script {
-                        echo "Iniciando a autenticação com o Google Cloud..."
-                        // Ativa a conta de serviço usando a chave JSON.
-                        sh "gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}"
+                // CORREÇÃO: Usa uma abordagem de script para controlar a execução do Docker.
+                script {
+                    // Constrói a imagem a partir do Dockerfile e a armazena em uma variável.
+                    def dockerImage = docker.build("flutter-ci-agent")
 
-                        echo "Configurando o projeto gcloud para ${GCP_PROJECT_ID}..."
-                        sh "gcloud config set project ${GCP_PROJECT_ID}"
+                    // Executa os comandos a seguir DENTRO de um container da imagem construída.
+                    // O Jenkins gerencia o mapeamento do workspace automaticamente aqui.
+                    dockerImage.inside {
+                        // 'withCredentials' injeta a chave da conta de serviço em um arquivo temporário.
+                        withCredentials([file(credentialsId: "${GCP_CREDENTIALS_ID}", variable: 'GCP_KEY_FILE')]) {
+                            echo "Iniciando a autenticação com o Google Cloud..."
+                            // Ativa a conta de serviço usando a chave JSON.
+                            sh "gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}"
 
-                        echo "Preparando o ambiente Flutter..."
-                        // Baixa as dependências do projeto.
-                        sh "flutter pub get"
+                            echo "Configurando o projeto gcloud para ${GCP_PROJECT_ID}..."
+                            sh "gcloud config set project ${GCP_PROJECT_ID}"
 
-                        echo "Limpando builds anteriores..."
-                        sh "flutter clean"
+                            echo "Preparando o ambiente Flutter..."
+                            // Baixa as dependências do projeto.
+                            sh "flutter pub get"
 
-                        echo "Construindo APK de debug..."
-                        // Gera o APK principal do app.
-                        sh "flutter build apk --debug"
+                            echo "Limpando builds anteriores..."
+                            sh "flutter clean"
 
-                        echo "Construindo APK de teste de integração..."
-                        // Gera o APK que contém os testes de integração.
-                        sh "flutter build apk -t lib/main.dart --debug"
+                            echo "Construindo APK de debug..."
+                            // Gera o APK principal do app.
+                            sh "flutter build apk --debug"
 
-                        echo "Enviando testes para o Firebase Test Lab..."
-                        // Executa o comando gcloud para rodar os testes em dispositivos reais.
-                        sh """
-                            gcloud firebase test android run \\
-                                --type instrumentation \\
-                                --app build/app/outputs/apk/debug/app-debug.apk \\
-                                --test build/app/outputs/apk/debug/app-debug.apk \\
-                                --device model=Pixel6,version=31,locale=pt_BR,orientation=portrait \\
-                                --timeout 15m
-                        """
+                            echo "Construindo APK de teste de integração..."
+                            // Gera o APK que contém os testes de integração.
+                            sh "flutter build apk -t lib/main.dart --debug"
+
+                            echo "Enviando testes para o Firebase Test Lab..."
+                            // Executa o comando gcloud para rodar os testes em dispositivos reais.
+                            sh """
+                                gcloud firebase test android run \\
+                                    --type instrumentation \\
+                                    --app build/app/outputs/apk/debug/app-debug.apk \\
+                                    --test build/app/outputs/apk/debug/app-debug.apk \\
+                                    --device model=Pixel6,version=31,locale=pt_BR,orientation=portrait \\
+                                    --timeout 15m
+                            """
+                        }
                     }
                 }
             }
@@ -88,14 +88,18 @@ pipeline {
         stage('Deploy to QA') {
             steps {
                 script {
-                    echo "Distribuindo o APK para o grupo '${FIREBASE_TESTER_GROUP}'..."
-                    // Usa o comando 'firebase' (parte do gcloud SDK) para distribuir o app.
-                    sh """
-                        firebase appdistribution:distribute build/app/outputs/apk/debug/app-debug.apk \\
-                            --app ${FIREBASE_APP_ID} \\
-                            --release-notes "Build ${BUILD_NUMBER} - Nova versão para testes." \\
-                            --groups "${FIREBASE_TESTER_GROUP}"
-                    """
+                    // Reutiliza a mesma lógica para garantir que a execução ocorra no ambiente Docker.
+                    def dockerImage = docker.build("flutter-ci-agent")
+                    dockerImage.inside {
+                        echo "Distribuindo o APK para o grupo '${FIREBASE_TESTER_GROUP}'..."
+                        // Usa o comando 'firebase' (parte do gcloud SDK) para distribuir o app.
+                        sh """
+                            firebase appdistribution:distribute build/app/outputs/apk/debug/app-debug.apk \\
+                                --app ${FIREBASE_APP_ID} \\
+                                --release-notes "Build ${BUILD_NUMBER} - Nova versão para testes." \\
+                                --groups "${FIREBARSE_TESTER_GROUP}"
+                        """
+                    }
                 }
             }
         }
@@ -114,5 +118,3 @@ pipeline {
         }
     }
 }
-
-
