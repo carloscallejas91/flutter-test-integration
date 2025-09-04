@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Variáveis de ambiente para versões das ferramentas e caminhos
 # Facilita a manutenção e atualização das versões no futuro
-ENV FLUTTER_VERSION="3.52.2"
+ENV FLUTTER_VERSION="3.35.2"
 ENV FLUTTER_CHANNEL="stable"
 ENV ANDROID_CMD_LINE_TOOLS_VERSION="11076708"
 ENV ANDROID_SDK_ROOT="/opt/android-sdk"
