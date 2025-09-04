@@ -37,6 +37,8 @@ RUN mkdir -p /opt && \
     tar xf "flutter_linux_${FLUTTER_VERSION}-${FLUTTER_CHANNEL}.tar.xz" && \
     rm "flutter_linux_${FLUTTER_VERSION}-${FLUTTER_CHANNEL}.tar.xz"
 
+RUN chmod -R 777 /opt/flutter
+
 # Adiciona o diretório do Flutter à lista de exceções seguras do Git
 # para resolver o problema de "dubious ownership" ao rodar como root.
 RUN git config --global --add safe.directory ${FLUTTER_HOME}
