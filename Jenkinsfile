@@ -18,7 +18,7 @@ pipeline {
 
     // 3. ESTÁGIOS DO PIPELINE
     stages {
-        // O checkout do código é feito automaticamente pelo Jenkins no início.
+        // O checkout do código é feito automatically pelo Jenkins no início.
 
         // Estágio para construir a imagem Docker uma única vez.
         stage('Build Docker Image') {
@@ -30,15 +30,24 @@ pipeline {
             }
         }
 
+        // NOVO ESTÁGIO DE DEBUG: Lista o conteúdo do workspace dentro do container.
+        stage('Debug Workspace') {
+            steps {
+                script {
+                    echo "==> EXECUTANDO PASSO DE DEBUG: Listando arquivos no workspace do container..."
+                    bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -w /app ${DOCKER_IMAGE_NAME} ls -R"""
+                }
+            }
+        }
+
         // Estágio de Build e Teste: Compila os APKs e executa os testes de integração.
         stage('Build & Test') {
             steps {
                 script {
                     withCredentials([file(credentialsId: "${GCP_CREDENTIALS_ID}", variable: 'GCP_KEY_FILE')]) {
-                        // ADIÇÃO DE DEBUG: Adicionados 'pwd' e 'ls -la' para diagnosticar a estrutura de arquivos.
                         // Usa o Gradle para construir os APKs de app e de teste separadamente.
                         // Atualiza o comando gcloud para usar o APK de teste correto.
-                        bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -v "%GCP_KEY_FILE%:/key.json" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Verificando o workspace dentro do container...\\" && pwd && ls -la && echo \\"==> Autenticando com Google Cloud...\\" && gcloud auth activate-service-account --key-file=/key.json && gcloud config set project ${GCP_PROJECT_ID} && echo \\"==> Preparando ambiente Flutter...\\" && flutter pub get && flutter clean && echo \\"==> Construindo APKs com Gradle...\\" && chmod +x android/gradlew && cd android && ./gradlew app:assembleDebug app:assembleDebugAndroidTest && cd .. && echo \\"==> Executando testes no Firebase Test Lab...\\" && gcloud firebase test android run --type instrumentation --app build/app/outputs/apk/debug/app-debug.apk --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk --device model=redfin,version=30,locale=pt_BR,orientation=portrait --timeout 15m" """
+                        bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -v "%GCP_KEY_FILE%:/key.json" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Autenticando com Google Cloud...\\" && gcloud auth activate-service-account --key-file=/key.json && gcloud config set project ${GCP_PROJECT_ID} && echo \\"==> Preparando ambiente Flutter...\\" && flutter pub get && flutter clean && echo \\"==> Construindo APKs com Gradle...\\" && chmod +x android/gradlew && cd android && ./gradlew app:assembleDebug app:assembleDebugAndroidTest && cd .. && echo \\"==> Executando testes no Firebase Test Lab...\\" && gcloud firebase test android run --type instrumentation --app build/app/outputs/apk/debug/app-debug.apk --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk --device model=redfin,version=30,locale=pt_BR,orientation=portrait --timeout 15m" """
                     }
                 }
             }
