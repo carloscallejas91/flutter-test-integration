@@ -9,15 +9,23 @@ void main() {
   group('End-to-end test', () {
     testWidgets('toca no botão de ação flutuante e verifica o contador',
             (WidgetTester tester) async {
-          // CORREÇÃO: Inicia o widget principal do app em vez de chamar app.main().
-          // Esta abordagem é mais estável e recomendada para ambientes de teste.
+          // DEBUG: Adiciona um log para confirmar que o teste está sendo executado.
+          print("--- INICIANDO TESTE DE INTEGRAÇÃO ---");
+
+          // Inicia o widget principal do app.
           await tester.pumpWidget(const app.MyApp());
 
-          // Aguarda o app carregar e todas as animações iniciais terminarem.
+          // Aguarda o app carregar.
           await tester.pumpAndSettle();
+
+          // CORREÇÃO: Adiciona uma pequena espera explícita.
+          // Às vezes, em ambientes de CI mais lentos, isso ajuda a garantir que a UI
+          // esteja completamente pronta antes de interagir com ela.
+          await Future.delayed(const Duration(seconds: 2));
 
           // Verifica se o contador começa em 0.
           expect(find.text('0'), findsOneWidget);
+          print("--- VERIFICADO: Contador inicial é 0 ---");
 
           // Encontra o botão pela sua Key.
           final Finder fab = find.byKey(const Key('increment'));
@@ -27,9 +35,11 @@ void main() {
 
           // Aguarda a UI ser atualizada após o toque.
           await tester.pumpAndSettle();
+          print("--- AÇÃO: Botão de incremento tocado ---");
 
           // Verifica se o contador foi incrementado para 1.
           expect(find.text('1'), findsOneWidget);
+          print("--- VERIFICADO: Contador final é 1 ---");
         });
   });
 }
