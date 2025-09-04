@@ -6,26 +6,31 @@ import 'package:test_integration_app/main.dart' as app;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('toca no botão de ação flutuante e verifica o contador',
-          (WidgetTester tester) async {
-        // Inicia o app.
-        app.main();
-        // Aguarda o app carregar e todas as animações iniciais terminarem.
-        await tester.pumpAndSettle();
+  group('End-to-end test', () {
+    testWidgets('toca no botão de ação flutuante e verifica o contador',
+            (WidgetTester tester) async {
+          // CORREÇÃO: Inicia o widget principal do app em vez de chamar app.main().
+          // Esta abordagem é mais estável e recomendada para ambientes de teste.
+          await tester.pumpWidget(const app.MyApp());
 
-        // Verifica se o contador começa em 0.
-        expect(find.text('0'), findsOneWidget);
+          // Aguarda o app carregar e todas as animações iniciais terminarem.
+          await tester.pumpAndSettle();
 
-        // Encontra o botão pela sua Key.
-        final Finder fab = find.byKey(const Key('increment'));
+          // Verifica se o contador começa em 0.
+          expect(find.text('0'), findsOneWidget);
 
-        // Emula um toque no botão.
-        await tester.tap(fab);
+          // Encontra o botão pela sua Key.
+          final Finder fab = find.byKey(const Key('increment'));
 
-        // Aguarda a UI ser atualizada após o toque.
-        await tester.pumpAndSettle();
+          // Emula um toque no botão.
+          await tester.tap(fab);
 
-        // Verifica se o contador foi incrementado para 1.
-        expect(find.text('1'), findsOneWidget);
-      });
+          // Aguarda a UI ser atualizada após o toque.
+          await tester.pumpAndSettle();
+
+          // Verifica se o contador foi incrementado para 1.
+          expect(find.text('1'), findsOneWidget);
+        });
+  });
 }
+
