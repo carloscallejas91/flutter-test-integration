@@ -10,8 +10,6 @@ pipeline {
             // CORREÇÃO: Adiciona 'args' para forçar o diretório de trabalho correto dentro do container.
             // Isso resolve problemas de incompatibilidade de path entre o host Windows e o container Linux.
             args '-w /home/jenkins/workspace'
-            // Opcional: nome da imagem a ser construída. Útil para cache.
-            image 'flutter-ci-agent'
             // Opcional: diretório onde o Dockerfile está localizado.
             dir '.'
         }
