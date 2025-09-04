@@ -42,10 +42,10 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
-                    // Injeta a credencial como um arquivo no host.
                     withCredentials([file(credentialsId: "${GCP_CREDENTIALS_ID}", variable: 'GCP_KEY_FILE')]) {
-                        // CORREÇÃO: Altera o dispositivo para Pixel 5 (redfin) com API 30, conforme a lista fornecida.
-                        bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -v "%GCP_KEY_FILE%:/key.json" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Autenticando com Google Cloud...\\" && gcloud auth activate-service-account --key-file=/key.json && gcloud config set project ${GCP_PROJECT_ID} && echo \\"==> Preparando ambiente Flutter...\\" && flutter pub get && flutter clean && echo \\"==> Construindo APKs...\\" && flutter build apk --debug && flutter build apk -t lib/main.dart --debug && echo \\"==> Executando testes no Firebase Test Lab...\\" && gcloud firebase test android run --type instrumentation --app build/app/outputs/apk/debug/app-debug.apk --test build/app/outputs/apk/debug/app-debug.apk --device model=redfin,version=30,locale=pt_BR,orientation=portrait --timeout 15m" """
+                        // Usa o Gradle para construir os APKs de app e de teste separadamente.
+                        // Atualiza o comando gcloud para usar o APK de teste correto.
+                        bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -v "%GCP_KEY_FILE%:/key.json" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Autenticando com Google Cloud...\\" && gcloud auth activate-service-account --key-file=/key.json && gcloud config set project ${GCP_PROJECT_ID} && echo \\"==> Preparando ambiente Flutter...\\" && flutter pub get && flutter clean && echo \\"==> Construindo APKs com Gradle...\\" && chmod +x android/gradlew && cd android && ./gradlew app:assembleDebug app:assembleDebugAndroidTest && cd .. && echo \\"==> Executando testes no Firebase Test Lab...\\" && gcloud firebase test android run --type instrumentation --app build/app/outputs/apk/debug/app-debug.apk --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk --device model=redfin,version=30,locale=pt_BR,orientation=portrait --timeout 15m" """
                     }
                 }
             }
