@@ -44,8 +44,8 @@ pipeline {
                 script {
                     // Injeta a credencial como um arquivo no host.
                     withCredentials([file(credentialsId: "${GCP_CREDENTIALS_ID}", variable: 'GCP_KEY_FILE')]) {
-                        // CORREÇÃO: Usa aspas duplas para o comando sh -c e escapa as aspas internas com \".
-                        bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -v "%GCP_KEY_FILE%:/key.json" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Autenticando com Google Cloud...\\" && gcloud auth activate-service-account --key-file=/key.json && gcloud config set project ${GCP_PROJECT_ID} && echo \\"==> Preparando ambiente Flutter...\\" && flutter pub get && flutter clean && echo \\"==> Construindo APKs...\\" && flutter build apk --debug && flutter build apk -t lib/main.dart --debug && echo \\"==> Executando testes no Firebase Test Lab...\\" && gcloud firebase test android run --type instrumentation --app build/app/outputs/apk/debug/app-debug.apk --test build/app/outputs/apk/debug/app-debug.apk --device model=Pixel6,version=31,locale=pt_BR,orientation=portrait --timeout 15m" """
+                        // CORREÇÃO: Altera o dispositivo para Pixel 5 (redfin) com API 30, conforme a lista fornecida.
+                        bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -v "%GCP_KEY_FILE%:/key.json" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Autenticando com Google Cloud...\\" && gcloud auth activate-service-account --key-file=/key.json && gcloud config set project ${GCP_PROJECT_ID} && echo \\"==> Preparando ambiente Flutter...\\" && flutter pub get && flutter clean && echo \\"==> Construindo APKs...\\" && flutter build apk --debug && flutter build apk -t lib/main.dart --debug && echo \\"==> Executando testes no Firebase Test Lab...\\" && gcloud firebase test android run --type instrumentation --app build/app/outputs/apk/debug/app-debug.apk --test build/app/outputs/apk/debug/app-debug.apk --device model=redfin,version=30,locale=pt_BR,orientation=portrait --timeout 15m" """
                     }
                 }
             }
@@ -55,7 +55,6 @@ pipeline {
         stage('Deploy to QA') {
             steps {
                 script {
-                    // CORREÇÃO: Usa aspas duplas para o comando sh -c e escapa as aspas internas com \".
                     bat """docker run --rm --pull=never -v "%WORKSPACE%:/app" -w /app ${DOCKER_IMAGE_NAME} sh -c "echo \\"==> Distribuindo APK para o grupo ${FIREBASE_TESTER_GROUP}...\\" && firebase appdistribution:distribute build/app/outputs/apk/debug/app-debug.apk --app ${FIREBASE_APP_ID} --release-notes \\"Build ${env.BUILD_NUMBER} - Nova versão para testes.\\" --groups \\"${FIREBASE_TESTER_GROUP}\\"" """
                 }
             }
