@@ -41,9 +41,9 @@ RUN apt-get update && \
 
 # Instala o Node.js v22 (LTS) a partir do repositório oficial NodeSource.
 # O Firebase CLI requer uma versão mais recente do que a disponível no Debian padrão.
-RUN mkdir -p /etc/apt/keyrings && \
+RUN mkdir -p /etc/apt/keyrings /etc/apt/sources.list.d && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources/list.d/nodesource.list && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
