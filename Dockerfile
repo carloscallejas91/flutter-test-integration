@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Variáveis de ambiente para versões das ferramentas e caminhos
 # Facilita a manutenção e atualização das versões no futuro
-ENV FLUTTER_VERSION="3.35.2"
+ENV FLUTTER_VERSION="3.52.2"
 ENV FLUTTER_CHANNEL="stable"
 ENV ANDROID_CMD_LINE_TOOLS_VERSION="11076708"
 ENV ANDROID_SDK_ROOT="/opt/android-sdk"
@@ -16,14 +16,15 @@ ENV PATH="$PATH:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}
 ENV FLUTTER_HOME="/opt/flutter"
 
 # 1. Instalação de dependências essenciais
-# Inclui: git, ssh, wget, unzip para baixar e extrair pacotes,
-# e openjdk-17-jdk, que é recomendado para as versões mais recentes do Android.
+# Inclui: git, ssh, wget, unzip, xz-utils (para descompactar o SDK do Flutter)
+# e openjdk-17-jdk, recomendado para as versões mais recentes do Android.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
     openssh-client \
     wget \
     unzip \
+    xz-utils \
     openjdk-17-jdk \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -82,3 +83,4 @@ WORKDIR /home/jenkins/workspace
 
 # Comando padrão (pode ser sobrescrito pelo Jenkins)
 CMD ["flutter", "doctor", "-v"]
+
