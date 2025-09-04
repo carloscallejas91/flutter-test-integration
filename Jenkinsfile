@@ -1,22 +1,24 @@
-// Jenkinsfile (Declarative Pipeline)
-// Este pipeline automatiza o build, teste e deploy de um app Flutter.
+// Jenkinsfile Declarativo para CI/CD de um projeto Flutter
+// Constrói, Testa no Firebase Test Lab e Distribui para o Firebase App Distribution
 
-// Define o agente do pipeline. Usamos 'dockerfile true' para que o Jenkins
-// construa uma imagem a partir do Dockerfile na raiz do projeto e execute
-// os estágios dentro de um container dessa imagem.
 pipeline {
-    agent { dockerfile true }
+    // 1. AGENTE DE EXECUÇÃO
+    // Define que o pipeline será executado dentro de um container Docker
+    // construído a partir do Dockerfile presente no repositório.
+    agent {
+        dockerfile {
+            // CORREÇÃO: Adiciona 'args' para forçar o diretório de trabalho correto dentro do container.
+            // Isso resolve problemas de incompatibilidade de path entre o host Windows e o container Linux.
+            args '-w /home/jenkins/workspace'
+            // Opcional: nome da imagem a ser construída. Útil para cache.
+            image 'flutter-ci-agent'
+            // Opcional: diretório onde o Dockerfile está localizado.
+            dir '.'
+        }
+    }
 
-//     environment {
-//         FIREBASE_PROJECT_ID = "test-integration-app-4e52e"
-//         SERVICE_ACCOUNT_CREDENTIALS_ID = "firebase-service-account-key"
-//         FIREBASE_APP_ID="1:424599350937:android:5c7fd412fffd453bcb5208"
-//         IMAGE_NAME = "test-integration-app/flutter-builder:${env.BUILD_NUMBER}"
-//         BUILD_CONTAINER_NAME = "apk-builder-${env.BUILD_NUMBER}"
-//     }
-
-    // Variáveis de ambiente globais para o pipeline.
-    // Substitua os valores 'your-gcp-project-id' e 'your-firebase-app-id'.
+    // 2. VARIÁVEIS DE AMBIENTE
+    // Centraliza as configurações que podem mudar entre projetos ou ambientes.
     environment {
         // ID do seu projeto no Google Cloud.
         GCP_PROJECT_ID = 'test-integration-app-4e52e'
@@ -26,195 +28,89 @@ pipeline {
         GCP_CREDENTIALS_ID = 'firebase-service-account-key'
     }
 
+    // 3. ESTÁGIOS DO PIPELINE
     stages {
-        // Estágio 1: Checkout
-        // Clona o repositório do código-fonte.
+        // Estágio de Checkout: Baixa o código-fonte do repositório.
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    echo "Baixando o código-fonte..."
+                    checkout scm
+                }
             }
         }
 
-        // Estágio 2: Build & Test
-        // Este estágio compila o app e os testes, e os executa no Firebase Test Lab.
-        stage('Build & Test on Firebase Test Lab') {
+        // Estágio de Build e Teste: Compila os APKs e executa os testes de integração.
+        stage('Build & Test') {
             steps {
-                // 'withCredentials' injeta o arquivo secreto (chave JSON) em uma variável.
-                // O Jenkins gerencia a segurança deste arquivo.
-                withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
+                // 'withCredentials' injeta a chave da conta de serviço em um arquivo temporário.
+                withCredentials([file(credentialsId: "${GCP_CREDENTIALS_ID}", variable: 'GCP_KEY_FILE')]) {
                     script {
-                        try {
-                            echo "Authenticating with Google Cloud..."
-                            // Autentica no gcloud usando a conta de serviço.
-                            sh "gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}"
-                            // Define o projeto alvo para os comandos gcloud.
-                            sh "gcloud config set project ${GCP_PROJECT_ID}"
+                        echo "Iniciando a autenticação com o Google Cloud..."
+                        // Ativa a conta de serviço usando a chave JSON.
+                        sh "gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}"
 
-                            echo "Installing dependencies..."
-                            // Baixa as dependências do projeto Flutter.
-                            sh "flutter pub get"
+                        echo "Configurando o projeto gcloud para ${GCP_PROJECT_ID}..."
+                        sh "gcloud config set project ${GCP_PROJECT_ID}"
 
-                            echo "Building Android APKs (App and Test)..."
-                            // O comando 'build apk' gera tanto o APK do app quanto o de teste.
-                            // app-debug.apk (app)
-                            // app-debug-androidTest.apk (testes)
-                            sh "flutter build apk --debug"
+                        echo "Preparando o ambiente Flutter..."
+                        // Baixa as dependências do projeto.
+                        sh "flutter pub get"
 
-                            echo "Running Integration Tests on Firebase Test Lab..."
-                            // Envia os APKs para o Test Lab.
-                            // --type instrumentation: especifica que são testes de instrumentação.
-                            // --app: caminho para o APK do app.
-                            // --test: caminho para o APK dos testes.
-                            // --device: especifica o dispositivo virtual para o teste.
-                            //   model=Pixel6,version=33 -> Android 13 em um Pixel 6.
-                            sh """
-                                gcloud firebase test android run \\
-                                    --type instrumentation \\
-                                    --app build/app/outputs/apk/debug/app-debug.apk \\
-                                    --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk \\
-                                    --device model=Pixel6,version=33,locale=pt_BR,orientation=portrait
-                            """
-                        } catch (e) {
-                            echo "Error during Build & Test stage: ${e.message}"
-                            currentBuild.result = 'FAILURE'
-                            error("Pipeline failed in Build & Test stage.")
-                        }
+                        echo "Limpando builds anteriores..."
+                        sh "flutter clean"
+
+                        echo "Construindo APK de debug..."
+                        // Gera o APK principal do app.
+                        sh "flutter build apk --debug"
+
+                        echo "Construindo APK de teste de integração..."
+                        // Gera o APK que contém os testes de integração.
+                        sh "flutter build apk -t lib/main.dart --debug"
+
+                        echo "Enviando testes para o Firebase Test Lab..."
+                        // Executa o comando gcloud para rodar os testes em dispositivos reais.
+                        sh """
+                            gcloud firebase test android run \\
+                                --type instrumentation \\
+                                --app build/app/outputs/apk/debug/app-debug.apk \\
+                                --test build/app/outputs/apk/debug/app-debug.apk \\
+                                --device model=Pixel6,version=31,locale=pt_BR,orientation=portrait \\
+                                --timeout 15m
+                        """
                     }
                 }
             }
         }
 
-        // Estágio 3: Deploy to QA
-        // Se o estágio anterior for bem-sucedido, este distribui o APK para o time de QA.
-        stage('Deploy to Firebase App Distribution') {
+        // Estágio de Deploy: Distribui o APK para a equipe de QA.
+        // Este estágio só será executado se o estágio 'Build & Test' for bem-sucedido.
+        stage('Deploy to QA') {
             steps {
-                withCredentials([file(credentialsId: GCP_CREDENTIALS_ID, variable: 'GCP_KEY_FILE')]) {
-                    script {
-                        try {
-                            echo "Authenticating with Google Cloud..."
-                            sh "gcloud auth activate-service-account --key-file=${GCP_KEY_FILE}"
-                            sh "gcloud config set project ${GCP_PROJECT_ID}"
-
-                            echo "Distributing APK to QA team..."
-                            // Distribui o APK para um grupo de testadores no Firebase.
-                            // --app: ID do app no Firebase.
-                            // --release-notes: Mensagem para os testadores.
-                            // --groups: Nome do grupo de testadores (crie este grupo no console do Firebase).
-                            sh """
-                                gcloud firebase app-distribution distribute build/app/outputs/apk/debug/app-debug.apk \\
-                                    --app ${FIREBASE_APP_ID} \\
-                                    --release-notes "Build #${env.BUILD_NUMBER} - Testes de integração aprovados." \\
-                                    --groups "qa-team"
-                            """
-                        } catch (e) {
-                            echo "Error during Deploy stage: ${e.message}"
-                            currentBuild.result = 'FAILURE'
-                            error("Pipeline failed in Deploy stage.")
-                        }
-                    }
+                script {
+                    echo "Distribuindo o APK para o grupo '${FIREBASE_TESTER_GROUP}'..."
+                    // Usa o comando 'firebase' (parte do gcloud SDK) para distribuir o app.
+                    sh """
+                        firebase appdistribution:distribute build/app/outputs/apk/debug/app-debug.apk \\
+                            --app ${FIREBASE_APP_ID} \\
+                            --release-notes "Build ${BUILD_NUMBER} - Nova versão para testes." \\
+                            --groups "${FIREBASE_TESTER_GROUP}"
+                    """
                 }
             }
         }
     }
 
-    // Bloco Post-Execution: executado no final do pipeline, independentemente do resultado.
+    // 4. AÇÕES PÓS-EXECUÇÃO
+    // Define ações que serão executadas sempre ao final do pipeline,
+    // independentemente do resultado (sucesso, falha, etc.).
     post {
         always {
-            // Limpa o workspace do Jenkins para economizar espaço em disco.
-            echo "Cleaning up workspace..."
-            cleanWs()
-        }
-    }
-}
-
-pipeline {
-    // Definimos um agente genérico no topo.
-    agent any
-
-    environment {
-        FIREBASE_PROJECT_ID = "test-integration-app-4e52e"
-        SERVICE_ACCOUNT_CREDENTIALS_ID = "firebase-service-account-key"
-        FIREBASE_APP_ID="1:424599350937:android:5c7fd412fffd453bcb5208"
-        IMAGE_NAME = "test-integration-app/flutter-builder:${env.BUILD_NUMBER}"
-        BUILD_CONTAINER_NAME = "apk-builder-${env.BUILD_NUMBER}"
-    }
-
-    stages {
-        stage('Build Image With App Code') {
-            steps {
-                // Etapa 1: Baixa o código e constrói a imagem com o código dentro.
-                checkout scm
-                script {
-                    echo "Construindo imagem de build com o código do app..."
-                    docker.build(IMAGE_NAME, '.')
-                }
-            }
-        }
-
-        stage('Build & Extract APKs') {
-            steps {
-                // (CORRIGIDO) Usamos 'bat' para ter controle total e evitar os erros de caminho.
-                bat """
-                    echo "Passo 1: Construindo APKs dentro de um container temporário..."
-                    docker run --name ${BUILD_CONTAINER_NAME} ${IMAGE_NAME} sh -c "cd android && chmod +x ./gradlew && ./gradlew clean && ./gradlew app:assembleDebug assembleDebugAndroidTest"
-
-                    echo "Passo 2: Criando diretórios de saída no workspace do Jenkins..."
-                    mkdir android\\app\\build\\outputs\\apk\\debug
-                    mkdir android\\app\\build\\outputs\\apk\\androidTest\\debug
-
-                    echo "Passo 3: Copiando APKs do container para o workspace..."
-                    docker cp ${BUILD_CONTAINER_NAME}:/home/flutterdev/app/android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/app-debug.apk
-                    docker cp ${BUILD_CONTAINER_NAME}:/home/flutterdev/app/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-                """
-            }
-        }
-
-        stage('Run Tests and Deploy') {
-            steps {
-                withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
-                    bat '''
-                        echo "Autenticando com o Google Cloud..."
-                        gcloud auth activate-service-account --key-file="%GOOGLE_APPLICATION_CREDENTIALS%"
-                        gcloud config set project %FIREBASE_PROJECT_ID%
-
-                        echo "Enviando APKs para o Firebase Test Lab..."
-                        gcloud firebase test android run ^
-                          --type instrumentation ^
-                          --app android/app/build/outputs/apk/debug/app-debug.apk ^
-                          --test android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk ^
-                          --device model=pixel6,version=34,locale=pt_BR,orientation=portrait ^
-                          --timeout 15m
-
-                        echo "Testes passaram! Distribuindo APK para o grupo de QA..."
-                        gcloud firebase appdistribution apps distribute android/app/build/outputs/apk/debug/app-debug.apk ^
-                          --app %FIREBASE_APP_ID% ^
-                          --release-notes "Build %BUILD_NUMBER% via Jenkins. Testes de integração passaram." ^
-                          --groups "qa-testers"
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            // (CORRIGIDO) Envolvemos a limpeza em um bloco 'node' para garantir o contexto.
-            node {
-                echo "Pipeline finalizado. Limpando..."
-                // Limpa o container temporário, caso ele ainda exista por algum erro
-                script {
-                    bat "docker rm -f ${BUILD_CONTAINER_NAME} || true"
-                }
+            script {
+                echo "Limpando o workspace..."
+                // cleanWs() remove todos os arquivos do workspace para a próxima execução.
                 cleanWs()
-                script {
-                    try {
-                        bat "docker rmi ${IMAGE_NAME}"
-                    } catch (err) {
-                        echo "Imagem ${IMAGE_NAME} não encontrada ou não pôde ser removida."
-                    }
-                }
             }
         }
     }
 }
-
