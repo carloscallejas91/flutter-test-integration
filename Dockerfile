@@ -22,7 +22,7 @@ ENV ANDROID_HOME="/opt/android-sdk"
 ENV PATH="${PATH}:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools"
 
 # 1. INSTALAÇÃO DE DEPENDÊNCIAS BÁSICAS
-# Instala pacotes essenciais e o OpenJDK.
+# Instala pacotes essenciais, OpenJDK, e Node.js/npm para o Firebase CLI.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     openjdk-${JAVA_VERSION}-jdk \
@@ -32,6 +32,8 @@ RUN apt-get update && \
     curl \
     xz-utils \
     libglu1-mesa \
+    nodejs \
+    npm \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -65,8 +67,8 @@ RUN yes | sdkmanager --licenses
 # Instala os pacotes necessários do Android SDK.
 RUN sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-# 4. INSTALAÇÃO DO GOOGLE CLOUD SDK (gcloud CLI)
-# Necessário para interagir com o Firebase Test Lab e App Distribution.
+# 4. INSTALAÇÃO DO GOOGLE CLOUD SDK (gcloud CLI) E FIREBASE TOOLS
+# Necessário para interagir com o Firebase Test Lab.
 RUN cd /opt && \
     wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_SDK_VERSION}-linux-x86_64.tar.gz" && \
     tar -xzf google-cloud-cli-${GCLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
@@ -76,8 +78,8 @@ RUN cd /opt && \
 # Adiciona o gcloud ao PATH.
 ENV PATH="/opt/google-cloud-sdk/bin:${PATH}"
 
-# Instala o componente 'firebase' no gcloud CLI.
-RUN gcloud components install firebase --quiet
+# Instala o Firebase CLI globalmente via npm, que é a ferramenta para App Distribution.
+RUN npm install -g firebase-tools
 
 # 5. CONFIGURAÇÃO DO USUÁRIO
 # Cria um usuário não-root para executar os builds, como boa prática de segurança.
