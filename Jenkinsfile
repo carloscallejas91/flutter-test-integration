@@ -6,59 +6,41 @@ pipeline {
         SERVICE_ACCOUNT_CREDENTIALS_ID = "firebase-service-account-key"
         IMAGE_NAME = "test-integration-app/flutter-builder:${env.BUILD_NUMBER}"
         FIREBASE_APP_ID="1:424599350937:android:5c7fd412fffd453bcb5208"
+        BUILD_CONTAINER_NAME = "apk-builder-${env.BUILD_NUMBER}"
     }
 
     stages {
         stage('Build Image With App Code') {
             steps {
-                // Nesta etapa, nós fazemos o checkout E construímos a imagem.
-                // O comando COPY no Dockerfile irá copiar o código para dentro da imagem.
                 checkout scm
                 script {
-                    echo "Construindo imagem de build já com o código do app..."
+                    echo "Construindo imagem de build com o código do app..."
                     docker.build(IMAGE_NAME, '.')
                 }
             }
         }
 
-        stage('Build APKs inside Container') {
+        stage('Build & Extract APKs') {
             steps {
-                script {
-                    echo "Construindo APKs..."
-                    // ==================== CORREÇÃO APLICADA AQUI ====================
-                    // Removemos a flag de volume '-v'. O container agora usa sua cópia interna do código.
-                    bat """
-                        docker run --rm --workdir /home/flutterdev/app ^
-                            ${IMAGE_NAME} ^
-                            sh -c "cd android && chmod +x ./gradlew && ./gradlew clean && ./gradlew app:assembleDebug assembleDebugAndroidTest"
-                    """
-                }
-            }
-        }
+                // Usamos 'bat' pois o agente está no Windows
+                bat """
+                    echo "Passo 1: Construindo APKs dentro de um container temporário..."
+                    docker run --name ${BUILD_CONTAINER_NAME} ${IMAGE_NAME} sh -c "cd android && chmod +x ./gradlew && ./gradlew clean && ./gradlew app:assembleDebug assembleDebugAndroidTest"
 
-        // Os estágios seguintes precisam dos APKs, que ainda não estão no workspace do Jenkins.
-        // Precisamos copiá-los do container para o host.
-        stage('Copy APKs from Container') {
-            steps {
-                script {
-                    echo "Copiando APKs do container para o workspace do Jenkins..."
-                    // Primeiro, precisamos descobrir o ID do container recém-construído.
-                    // Uma maneira mais simples é construir os APKs e depois copiá-los.
-                    // Vamos refatorar o estágio anterior para facilitar isso.
+                    echo "Passo 2: Criando diretórios de saída no workspace do Jenkins..."
+                    mkdir -p android\\app\\build\\outputs\\apk\\debug
+                    mkdir -p android\\app\\build\\outputs\\apk\\androidTest\\debug
 
-                    // A melhor abordagem é executar o build e o copy em um único passo.
-                    // Vamos criar um container, copiar os resultados e depois removê-lo.
-                    bat """
-                        docker create --name temp_builder_${BUILD_NUMBER} ${IMAGE_NAME}
-                        docker cp temp_builder_${BUILD_NUMBER}:/home/flutterdev/app/android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/app-debug.apk
-                        docker cp temp_builder_${BUILD_NUMBER}:/home/flutterdev/app/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-                        docker rm temp_builder_${BUILD_NUMBER}
-                    """
-                }
+                    echo "Passo 3: Copiando APKs do container para o workspace..."
+                    docker cp ${BUILD_CONTAINER_NAME}:/home/flutterdev/app/android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/app-debug.apk
+                    docker cp ${BUILD_CONTAINER_NAME}:/home/flutterdev/app/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+                """
             }
         }
 
         stage('Run Tests and Deploy') {
+            // Os estágios seguintes funcionam sem alterações, pois agora os APKs
+            // existem no workspace do Jenkins.
             steps {
                 withCredentials([file(credentialsId: SERVICE_ACCOUNT_CREDENTIALS_ID, variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
                     bat '''
@@ -88,6 +70,10 @@ pipeline {
     post {
         always {
             echo "Pipeline finalizado. Limpando..."
+            // Limpa o container temporário, caso ele ainda exista por algum erro
+            script {
+                bat "docker rm -f ${BUILD_CONTAINER_NAME} || true"
+            }
             cleanWs()
             script {
                 try {
