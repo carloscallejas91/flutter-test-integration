@@ -5,23 +5,25 @@
 FROM debian:12-slim
 
 # Define o locale para evitar avisos durante a instalação de pacotes.
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 
 # Argumentos para definir as versões das ferramentas. Permite flexibilidade.
 ARG FLUTTER_VERSION="3.35.2"
 ARG FLUTTER_CHANNEL="stable"
 ARG ANDROID_SDK_VERSION="11076708" # Corresponde às últimas ferramentas do Android Studio
 ARG JAVA_VERSION="17"
+ARG GCLOUD_SDK_VERSION="488.0.0" # Versão fixa para o gcloud SDK
 
-# Variáveis de ambiente para o Flutter e Android SDK.
+# Variáveis de ambiente para o Flutter, Android SDK e Google Cloud SDK.
 ENV FLUTTER_HOME="/opt/flutter"
 ENV ANDROID_SDK_ROOT="/opt/android-sdk"
-ENV PATH="${FLUTTER_HOME}/bin:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+ENV GCLOUD_HOME="/opt/google-cloud-sdk"
+ENV PATH="${GCLOUD_HOME}/bin:${FLUTTER_HOME}/bin:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
 
 # 2. INSTALAÇÃO DE DEPENDÊNCIAS DO SISTEMA
 # Instala todas as ferramentas necessárias numa única camada para otimizar o tamanho.
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
     bash \
     curl \
     file \
@@ -37,13 +39,14 @@ RUN apt-get update && \
     # Limpa o cache do apt para reduzir o tamanho da imagem.
     rm -rf /var/lib/apt/lists/*
 
-# CORREÇÃO: Instala o Node.js v22 (LTS) a partir do repositório oficial NodeSource.
+# Instala o Node.js v22 (LTS) a partir do repositório oficial NodeSource.
 # O Firebase CLI requer uma versão mais recente do que a disponível no Debian padrão.
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources/list.d/nodesource.list && \
     apt-get update && \
-    apt-get install nodejs -y
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # 3. INSTALAÇÃO DO FLUTTER SDK
 RUN mkdir -p /opt && \
@@ -72,9 +75,11 @@ RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
     sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 # 5. INSTALAÇÃO DAS FERRAMENTAS DO GOOGLE CLOUD E FIREBASE
-RUN curl https://sdk.cloud.google.com | bash > /dev/null 2>&1 && \
-    # Adiciona o gcloud ao PATH.
-    echo 'export PATH=/root/google-cloud-sdk/bin:$PATH' >> /root/.bashrc
+# CORREÇÃO FINAL: Descarrega e extrai o gcloud CLI diretamente, sem usar o script de instalação.
+RUN cd /opt && \
+    wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${GCLOUD_SDK_VERSION}-linux-x86_64.tar.gz" && \
+    tar -xzf "google-cloud-sdk-${GCLOUD_SDK_VERSION}-linux-x86_64.tar.gz" && \
+    rm "google-cloud-sdk-${GCLOUD_SDK_VERSION}-linux-x86_64.tar.gz"
 
 # Instala as ferramentas do Firebase via npm.
 RUN npm install -g firebase-tools
@@ -85,7 +90,7 @@ RUN useradd -ms /bin/bash jenkins && \
     # Concede a propriedade dos diretórios dos SDKs ao novo usuário.
     chown -R jenkins:jenkins ${FLUTTER_HOME} && \
     chown -R jenkins:jenkins ${ANDROID_SDK_ROOT} && \
-    chown -R jenkins:jenkins /root/google-cloud-sdk
+    chown -R jenkins:jenkins ${GCLOUD_HOME}
 
 # Define o usuário 'jenkins' como o padrão para os próximos comandos.
 USER jenkins
