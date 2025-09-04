@@ -8,7 +8,7 @@ FROM debian:12-slim
 ENV LANG C.UTF-8
 
 # Argumentos para definir as versões das ferramentas. Permite flexibilidade.
-ARG FLUTTER_VERSION="3.22.2"
+ARG FLUTTER_VERSION="3.35.2"
 ARG FLUTTER_CHANNEL="stable"
 ARG ANDROID_SDK_VERSION="11076708" # Corresponde às últimas ferramentas do Android Studio
 ARG JAVA_VERSION="17"
