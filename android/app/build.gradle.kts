@@ -36,6 +36,13 @@ android {
         versionName = flutter.versionName
     }
 
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        animationsDisabled = true
+
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
