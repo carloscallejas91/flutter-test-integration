@@ -2,17 +2,13 @@
 name: Flutter CI/CD - Test Lab & App Distribution
 
 # Define o gatilho para a execução do workflow.
-# Neste caso, qualquer 'push' na branch 'main'.
-# Você pode ajustar para 'release/*' ou outra branch de sua preferência.
 on:
   push:
     branches:
       - main
 
 jobs:
-  # Nome do job principal
   build_test_and_distribute:
-    # O tipo de máquina virtual que o job irá rodar
     runs-on: ubuntu-latest
 
     steps:
@@ -31,39 +27,33 @@ jobs:
       - name: 3. Configurar o Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.2' # <- IMPORTANTE: Use a sua versão exata
+          flutter-version: '3.35.2'
           channel: 'stable'
-          cache: true # Ativa o cache para acelerar futuras execuções
+          cache: true
 
-      # Passo 4: Baixa todas as dependências do projeto definidas no pubspec.yaml
+      # Passo 4: Instalar dependências do Flutter
       - name: 4. Instalar dependências do Flutter
         run: flutter pub get
 
-      # Passo 5: Compila o APK da aplicação e o APK de teste de instrumentação
+      # Passo 5: Construir APK da Aplicação e de Teste
       - name: 5. Construir APK da Aplicação e de Teste
         run: |
-          # Constrói o APK principal em modo debug (ex: build/app/outputs/apk/debug/app-debug.apk)
           flutter build apk --debug
-          
-          # Navega para o diretório 'android' e usa o Gradle para construir o APK de teste
-          # que contém os testes de integração.
-          # (ex: build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk)
           cd android
           ./gradlew app:assembleAndroidTest
           cd ..
 
-      # Passo 6: Autentica na sua conta Google Cloud usando uma chave de serviço
+      # Passo 6: Autenticar com o Google Cloud
       - name: 6. Autenticar com o Google Cloud
         uses: 'google-github-actions/auth@v2'
         with:
-          # A chave JSON da conta de serviço deve ser armazenada como um Secret no GitHub
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
 
-      # Passo 7: Configura o gcloud CLI para usar o seu projeto Firebase/GCP
+      # Passo 7: Configurar projeto gcloud
       - name: 7. Configurar projeto gcloud
         run: gcloud config set project 'test-integration-app-4e52e'
 
-      # Passo 8: Envia os APKs para o Firebase Test Lab e executa os testes
+      # Passo 8: Executar testes no Firebase Test Lab
       - name: 8. Executar testes no Firebase Test Lab
         id: run_test_lab
         run: |
@@ -72,21 +62,16 @@ jobs:
             --app build/app/outputs/apk/debug/app-debug.apk \
             --test build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
             --device model=Pixel6,version=33,locale=pt_BR,orientation=portrait \
-            --timeout 5m # Define um tempo limite de 5 minutos para os testes
+            --timeout 5m
 
-      # Passo 9: Se os testes no Test Lab foram bem-sucedidos, distribui o app
+      # Passo 9: Distribuir para QA via Firebase App Distribution
       - name: 9. Distribuir para QA via Firebase App Distribution
-        if: success() # Condição: só executa se os passos anteriores (incluindo o Test Lab) não falharem
-        uses: wzieba/Firebase-Distribution-Action@v1
+        if: success()
+        uses: wzieba/firebase-distribution-action@v1.9.0 # <-- CORREÇÃO APLICADA AQUI
         with:
-          # ID do seu App no Firebase (encontrado nas configurações do projeto)
           appId: '1:424599350937:android:5c7fd412fffd453bcb5208'
-          # Token de CI do Firebase
           token: ${{ secrets.FIREBASE_TOKEN }}
-          # Grupo de testadores para quem o app será enviado
           groups: 'qa-team'
-          # Caminho para o APK que será distribuído
           file: build/app/outputs/apk/debug/app-debug.apk
-          # Notas da versão que aparecerão para os testadores
           releaseNotes: "Build ${{ github.run_number }} | Testes integrados aprovados no Test Lab. Pronto para QA."
 
