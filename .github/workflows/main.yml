@@ -53,7 +53,7 @@ jobs:
               uses: google-github-actions/auth@v2
               with:
                   # 'GCP_SA_KEY' é o nome do segredo que você criará nas configurações do seu repositório.
-                  credentials_json: ${{ secrets.GCP_SA_KEY }}
+                  credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
             # Passo 5: Configurar o gcloud CLI
             # Prepara o ambiente para usar os comandos do Google Cloud.
