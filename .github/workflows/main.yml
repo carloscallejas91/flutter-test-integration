@@ -52,7 +52,6 @@ jobs:
             - name: Autenticar no Google Cloud
               uses: google-github-actions/auth@v2
               with:
-                  # 'GCP_SA_KEY' é o nome do segredo que você criará nas configurações do seu repositório.
                   credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
             # Passo 5: Configurar o gcloud CLI
@@ -61,6 +60,9 @@ jobs:
               uses: google-github-actions/setup-gcloud@v2
               with:
                   project_id: ${{ env.GCP_PROJECT_ID }}
+
+            - name: Validar Autenticação
+              run: gcloud auth list
 
             # Passo 6: Instalar o Firebase CLI
             # O Firebase CLI é necessário para a distribuição e é instalado via npm.
