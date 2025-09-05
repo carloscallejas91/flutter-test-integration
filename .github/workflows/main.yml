@@ -1,4 +1,3 @@
-# Nome do workflow que aparecerá no separador "Actions" do GitHub.
 name: Flutter CI/CD para Teste e Deploy
 
 # 1. GATILHO (TRIGGER)
