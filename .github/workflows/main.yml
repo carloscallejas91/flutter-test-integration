@@ -47,15 +47,15 @@ jobs:
             - name: Autenticar no Google Cloud
               uses: google-github-actions/auth@v2
               with:
-                  credentials_json: '${{ secrets.GCP_SA_KEY }}'
-
-            - name: Validar Autenticação
-              run: gcloud auth list
+                  credentials_json: ${{ secrets.GCP_SA_KEY }}
 
             - name: Configurar gcloud CLI
               uses: google-github-actions/setup-gcloud@v2
               with:
                   project_id: ${{ env.GCP_PROJECT_ID }}
+
+            - name: Validar Autenticação
+              run: gcloud auth list
 
             - name: Instalar Firebase CLI
               run: sudo npm install -g firebase-tools
