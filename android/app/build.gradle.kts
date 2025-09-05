@@ -1,13 +1,16 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
     id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+configurations.all {
+    resolutionStrategy.force("androidx.test:runner:1.5.2")
+    resolutionStrategy.force("androidx.test:rules:1.5.0")
+    resolutionStrategy.force("androidx.test.espresso:espresso-core:3.5.1")
+    resolutionStrategy.force("androidx.test.espresso:espresso-idling-resource:3.5.1")
+}
 android {
     namespace = "com.test_integration.test_integration_app"
     compileSdk = flutter.compileSdkVersion
