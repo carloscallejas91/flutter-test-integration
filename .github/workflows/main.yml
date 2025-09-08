@@ -33,8 +33,15 @@ jobs:
       - name: 4b. Verificar a criação do ficheiro google-services.json
         run: ls -l android/app
 
-      - name: 5. Construir APKs (app e teste)
+      - name: 4c. Verificar o ficheiro build.gradle.kts da app
+        run: cat android/app/build.gradle.kts
+
+      - name: 5. Limpar e Construir APKs (app e teste)
         run: |
+          flutter clean
+          cd android
+          ./gradlew clean
+          cd ..
           flutter build apk --debug
           cd android
           ./gradlew app:assembleAndroidTest
