@@ -68,7 +68,7 @@ jobs:
             --device model=akita,version=34 \
             --timeout 5m \
             --use-orchestrator \
-            --test-targets "class com.test_integration.test_integration_app.MainActivity"
+            --test-targets "class com.test_integration.test_integration_app.app_test"
 
       - name: 8a. Instalar Firebase CLI Tools
         run: npm install -g firebase-tools
