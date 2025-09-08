@@ -51,6 +51,8 @@ dependencies {
 
     // Adiciona as dependências de teste necessárias com as versões corrigidas
     testImplementation("junit:junit:4.13.2")
+    // Adiciona a dependência core-ktx para resolver o problema do manifesto
+    androidTestImplementation("androidx.test:core-ktx:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.1.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
 }
