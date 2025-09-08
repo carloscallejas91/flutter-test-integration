@@ -32,15 +32,14 @@ jobs:
 
       - name: 5. Construir APKs (app e teste)
         run: |
-          # Adiciona permissão de execução ao gradlew
-          chmod +x android/gradlew
-
-          # Limpa o projeto e constrói os APKs
+          # Limpa e constrói o APK da app. Este passo gera o ficheiro gradlew.
           flutter clean
           flutter build apk --debug
+          
+          # Agora, entra na pasta android, dá permissão e constrói o APK de teste.
           cd android
+          chmod +x ./gradlew
           ./gradlew app:assembleAndroidTest
-          cd ..
 
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
