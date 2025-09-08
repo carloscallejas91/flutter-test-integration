@@ -50,8 +50,10 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
     // Dependência do Firebase Analytics (versão KTX)
-    // A BoM garantirá que as dependências transitivas como core e common-ktx sejam incluídas.
     implementation("com.google.firebase:firebase-analytics-ktx")
+
+    // Adicionado de volta explicitamente para resolver problemas de referência
+    implementation("com.google.firebase:firebase-common-ktx")
 
     // Dependências para testes de instrumentação
     testImplementation("junit:junit:4.13.2")

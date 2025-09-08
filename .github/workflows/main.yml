@@ -20,7 +20,7 @@ jobs:
       - name: 3. Configurar o Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.2' # Manter sincronizado com o seu pubspec.yaml
+          flutter-version: '3.35.2'
           channel: 'stable'
           cache: true
 
@@ -30,18 +30,13 @@ jobs:
       - name: 4a. Criar o ficheiro google-services.json a partir do Secret
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
-      - name: 4b. Verificar a criação do ficheiro google-services.json
-        run: ls -l android/app
-
-      - name: 4c. Verificar o ficheiro build.gradle.kts da app
-        run: cat android/app/build.gradle.kts
-
-      - name: 5. Limpar e Construir APKs (app e teste)
+      - name: 5. Construir APKs (app e teste)
         run: |
+          # Adiciona permissão de execução ao gradlew
+          chmod +x android/gradlew
+
+          # Limpa o projeto e constrói os APKs
           flutter clean
-          cd android
-          ./gradlew clean
-          cd ..
           flutter build apk --debug
           cd android
           ./gradlew app:assembleAndroidTest
