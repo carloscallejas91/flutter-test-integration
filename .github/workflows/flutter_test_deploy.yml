@@ -42,10 +42,14 @@ jobs:
           ./gradlew app:assembleAndroidTest
           cd ..
 
-          # Cria um diretório para os artefactos e move os APKs para lá.
+          # Cria um diretório para os artefactos.
           mkdir -p artifacts
+          
+          # Move o APK da aplicação.
           mv build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
-          mv android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/app-debug-androidTest.apk
+          
+          # Encontra o APK de teste, onde quer que ele esteja, e move-o.
+          find android/app/build/outputs -name "app-debug-androidTest.apk" -exec mv {} artifacts/app-debug-androidTest.apk \;
 
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
