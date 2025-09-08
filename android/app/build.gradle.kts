@@ -23,24 +23,16 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.test_integration.test_integration_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // ADICIONADO: Especifica o corredor de testes de instrumentação do AndroidX.
-        // Isto diz ao sistema qual classe usar para executar os seus testes.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -50,13 +42,17 @@ flutter {
     source = "../.."
 }
 
-// ADICIONADO: Bloco de dependências para os testes.
 dependencies {
+    // ADICIONADO: Firebase Bill of Materials (BoM) para gerir as versões das bibliotecas Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+
+    // ADICIONADO: Dependência do Firebase Analytics (que inclui o core)
+    implementation("com.google.firebase:firebase-analytics")
+
     // Testes de unidade (locais)
     testImplementation("junit:junit:4.13.2")
 
-    // Dependências necessárias para os testes de instrumentação (executados no dispositivo).
-    // Estas são as bibliotecas que estavam em falta.
+    // Dependências para os testes de instrumentação
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
