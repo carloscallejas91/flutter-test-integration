@@ -1,82 +1,54 @@
-name: Flutter CI/CD - Test Lab & App Distribution
+name: Flutter CI/CD
 
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  build_test_and_distribute:
+  build-android:
+    name: Build Android APK
     runs-on: ubuntu-latest
+
     steps:
-      - name: 1. Clonar o repositório
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: 2. Configurar o Java (JDK)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: 3. Configurar o Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.2'
-          channel: 'stable'
-          cache: true
+          flutter-version: '3.19.0'
+          channel: stable
 
-      - name: 4. Instalar dependências
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: 4a. Criar o ficheiro google-services.json a partir do Secret
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+      - name: Analyze code
+        run: flutter analyze
 
-      - name: 5. Construir e Mover APKs
-        run: |
-          # Limpa e constrói o APK da app.
-          flutter clean
-          flutter build apk --debug
-          
-          # Entra na pasta android, dá permissão e constrói o APK de teste.
-          cd android
-          chmod +x ./gradlew
-          ./gradlew app:assembleAndroidTest
-          cd ..
+      - name: Run tests
+        run: flutter test
 
-          # Cria um diretório para os artefactos.
-          mkdir -p artifacts
-          
-          # Move o APK da aplicação.
-          mv build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
-          
-          # Encontra o APK de teste, onde quer que ele esteja, e move-o.
-          find android/app/build/outputs -name "app-debug-androidTest.apk" -exec mv {} artifacts/app-debug-androidTest.apk \;
+      - name: Build APK
+        run: flutter build apk --release
 
-      - name: 6. Autenticar com o Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
-      - name: 7. Configurar projeto gcloud
-        run: gcloud config set project test-integration-app-4e52e
-
-      - name: 8. Executar testes no Firebase Test Lab
+      - name: Distribute APK via Firebase
         run: |
-          gcloud firebase test android run \
-            --type instrumentation \
-            --app artifacts/app-debug.apk \
-            --test artifacts/app-debug-androidTest.apk \
-            --device model=akita,version=34 \
-            --timeout 5m
-
-      - name: 8a. Instalar Firebase CLI Tools
-        run: npm install -g firebase-tools
-
-      - name: 9. Distribuir para QA via Firebase App Distribution
-        if: success()
-        run: |
-          firebase appdistribution:distribute artifacts/app-debug.apk \
-            --app "1:424599350937:android:5c7fd412fffd453bcb5208" \
-            --release-notes "Build do CI" \
-            --groups "qa-team" \
+          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
+            --app ${{ secrets.FIREBASE_APP_ID }} \
+            --groups testers \
             --token ${{ secrets.FIREBASE_TOKEN }}
 
+      - name: Cache Flutter packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
