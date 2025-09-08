@@ -48,8 +48,8 @@ jobs:
           # Move o APK da aplicação.
           mv build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
           
-          # Encontra o APK de teste em qualquer subpasta de 'android' e move-o.
-          find android -name "app-debug-androidTest.apk" -exec mv {} artifacts/app-debug-androidTest.apk \;
+          # Encontra o APK de teste em qualquer subpasta do projeto e move-o.
+          find . -name "app-debug-androidTest.apk" -exec mv {} artifacts/app-debug-androidTest.apk \;
 
       - name: 5a. Verificar Artefactos
         run: ls -l artifacts/
