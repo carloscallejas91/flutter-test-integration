@@ -53,6 +53,10 @@ jobs:
       - name: 7. Configurar projeto gcloud
         run: gcloud config set project 'test-integration-app-4e52e'
 
+      # Passo 7a: Listar os dispositivos disponíveis no Test Lab para depuração
+      - name: 7a. Listar Dispositivos do Test Lab
+        run: gcloud firebase test android models list
+
       # Passo 8: Executar testes no Firebase Test Lab
       - name: 8. Executar testes no Firebase Test Lab
         id: run_test_lab
