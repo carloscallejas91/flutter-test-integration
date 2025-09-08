@@ -30,19 +30,22 @@ jobs:
       - name: 4a. Criar o ficheiro google-services.json a partir do Secret
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
-      - name: 5. Construir APKs (app e teste)
+      - name: 5. Construir e Mover APKs
         run: |
-          # Limpa e constrói o APK da app. Este passo gera o ficheiro gradlew.
+          # Limpa e constrói o APK da app.
           flutter clean
           flutter build apk --debug
           
-          # Agora, entra na pasta android, dá permissão e constrói o APK de teste.
+          # Entra na pasta android, dá permissão e constrói o APK de teste.
           cd android
           chmod +x ./gradlew
           ./gradlew app:assembleAndroidTest
-          
-          # IMPORTANTE: Volta para o diretório raiz para os próximos passos.
           cd ..
+
+          # Cria um diretório para os artefactos e move os APKs para lá.
+          mkdir -p artifacts
+          mv build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
+          mv android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/app-debug-androidTest.apk
 
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
@@ -56,8 +59,8 @@ jobs:
         run: |
           gcloud firebase test android run \
             --type instrumentation \
-            --app ${{ github.workspace }}/build/app/outputs/flutter-apk/app-debug.apk \
-            --test ${{ github.workspace }}/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            --app artifacts/app-debug.apk \
+            --test artifacts/app-debug-androidTest.apk \
             --device model=akita,version=34 \
             --timeout 5m
 
@@ -67,7 +70,7 @@ jobs:
       - name: 9. Distribuir para QA via Firebase App Distribution
         if: success()
         run: |
-          firebase appdistribution:distribute ${{ github.workspace }}/build/app/outputs/flutter-apk/app-debug.apk \
+          firebase appdistribution:distribute artifacts/app-debug.apk \
             --app "1:424599350937:android:5c7fd412fffd453bcb5208" \
             --release-notes "Build do CI" \
             --groups "qa-team" \
