@@ -31,6 +31,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // ADICIONADO: Especifica o corredor de testes de instrumentação do AndroidX.
+        // Isto diz ao sistema qual classe usar para executar os seus testes.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -45,3 +49,15 @@ android {
 flutter {
     source = "../.."
 }
+
+// ADICIONADO: Bloco de dependências para os testes.
+dependencies {
+    // Testes de unidade (locais)
+    testImplementation("junit:junit:4.13.2")
+
+    // Dependências necessárias para os testes de instrumentação (executados no dispositivo).
+    // Estas são as bibliotecas que estavam em falta.
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+}
+
