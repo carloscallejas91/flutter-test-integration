@@ -44,6 +44,9 @@ jobs:
           # IMPORTANTE: Volta para o diretório raiz para os próximos passos.
           cd ..
 
+      - name: 5a. Listar ficheiros de output para depuração
+        run: ls -R android/app/build/outputs/
+
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
         with:
