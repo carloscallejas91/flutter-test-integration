@@ -28,6 +28,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Define o runner para os testes de instrumentação
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -42,17 +44,18 @@ flutter {
     source = "../.."
 }
 
+// Bloco de dependências que agrupa todas as bibliotecas necessárias.
 dependencies {
-    // ADICIONADO: Firebase Bill of Materials (BoM) para gerir as versões das bibliotecas Firebase
+    // Firebase Bill of Materials (BoM) para gerir as versões das bibliotecas Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    // ADICIONADO: Dependência do Firebase Analytics (que inclui o core)
+    // Dependência do Firebase Analytics (que inclui o core)
     implementation("com.google.firebase:firebase-analytics")
 
     // Testes de unidade (locais)
     testImplementation("junit:junit:4.13.2")
 
-    // Dependências para os testes de instrumentação
+    // Dependências para os testes de instrumentação (executados no dispositivo)
     androidTestImplementation("androidx.test:runner:1.5.2")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }
