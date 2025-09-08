@@ -51,6 +51,9 @@ jobs:
           # Encontra o APK de teste em qualquer subpasta de 'android' e move-o.
           find android -name "app-debug-androidTest.apk" -exec mv {} artifacts/app-debug-androidTest.apk \;
 
+      - name: 5a. Verificar Artefactos
+        run: ls -l artifacts/
+
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
         with:
