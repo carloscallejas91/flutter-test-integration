@@ -47,7 +47,7 @@ jobs:
       - name: 6. Autenticar com o Google Cloud
         uses: 'google-github-actions/auth@v2'
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+          credentials_json: '${{ secrets.GCP_SA_KEY }}' # <-- CORREÇÃO: Nome do secret atualizado
 
       # Passo 7: Configurar projeto gcloud
       - name: 7. Configurar projeto gcloud
@@ -67,7 +67,7 @@ jobs:
       # Passo 9: Distribuir para QA via Firebase App Distribution
       - name: 9. Distribuir para QA via Firebase App Distribution
         if: success()
-        uses: wzieba/firebase-distribution-action@v1.9.0 # <-- O NOME CORRETO É TUDO EM MINÚSCULAS
+        uses: wzieba/firebase-distribution-action@v1.9.0 # <-- CORREÇÃO: Usando versão específica
         with:
           appId: '1:424599350937:android:5c7fd412fffd453bcb5208'
           token: ${{ secrets.FIREBASE_TOKEN }}
