@@ -69,7 +69,8 @@ jobs:
             --app artifacts/app-debug.apk \
             --test artifacts/app-debug-androidTest.apk \
             --device model=akita,version=34 \
-            --timeout 5m
+            --timeout 5m \
+            --use-orchestrator
 
       - name: 8a. Instalar Firebase CLI Tools
         run: npm install -g firebase-tools
