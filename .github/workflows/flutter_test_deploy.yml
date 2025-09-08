@@ -17,7 +17,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.35.2'
           channel: stable
 
       - name: Install dependencies
@@ -41,7 +41,7 @@ jobs:
       - name: Distribute APK via Firebase
         run: |
           firebase appdistribution:distribute build/app/outputs/flutter-apk/app-release.apk \
-            --app ${{ secrets.FIREBASE_APP_ID }} \
+            --app ${{ secrets.FIREBASE_ID }} \
             --groups testers \
             --token ${{ secrets.FIREBASE_TOKEN }}
 
