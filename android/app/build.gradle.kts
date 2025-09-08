@@ -48,6 +48,9 @@ dependencies {
     // Firebase BoM (Bill of Materials) - Garante versões compatíveis
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
+    // Dependência de extensões KTX, necessária para a inicialização
+    implementation("com.google.firebase:firebase-common-ktx")
+
     // Adicionado explicitamente para garantir que a classe 'Firebase' seja encontrada
     implementation("com.google.firebase:firebase-core")
 
