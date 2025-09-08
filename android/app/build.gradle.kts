@@ -1,12 +1,9 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // O Plugin Gradle do Flutter deve ser aplicado após os plugins Gradle do Android e Kotlin.
     id("dev.flutter.flutter-gradle-plugin")
-    // START: Configuração do FlutterFire
-    // O plugin google-services deve ser o último plugin aplicado.
+    // O plugin do google-services é aplicado aqui
     id("com.google.gms.google-services")
-    // END: Configuração do FlutterFire
 }
 
 android {
@@ -30,7 +27,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Adicionado para testes de instrumentação
+        // Configuração para o executor de testes de instrumentação.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -46,18 +43,15 @@ flutter {
 }
 
 dependencies {
-    // Firebase BoM (Bill of Materials) - Garante versões compatíveis
+    // Importa o Firebase Bill of Materials (BoM)
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    // Dependência do Firebase Analytics (versão KTX)
-    implementation("com.google.firebase:firebase-analytics-ktx")
+    // Adiciona as dependências do Firebase que você precisa, sem especificar a versão
+    implementation("com.google.firebase:firebase-analytics")
 
-    // Adicionado de volta explicitamente para resolver problemas de referência
-    implementation("com.google.firebase:firebase-common-ktx")
-
-    // Dependências para testes de instrumentação
+    // Adiciona as dependências de teste necessárias
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }
 
