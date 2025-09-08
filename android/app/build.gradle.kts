@@ -49,9 +49,9 @@ dependencies {
     // Adiciona as dependências do Firebase que você precisa, sem especificar a versão
     implementation("com.google.firebase:firebase-analytics")
 
-    // Adiciona as dependências de teste necessárias
+    // Adiciona as dependências de teste necessárias com as versões corrigidas
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.1.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
 }
 
