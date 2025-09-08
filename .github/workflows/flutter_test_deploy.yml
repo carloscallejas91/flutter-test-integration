@@ -32,20 +32,17 @@ jobs:
 
       - name: 5. Construir APKs (app e teste)
         run: |
-          # Limpa e constrói o APK da app.
+          # Limpa e constrói o APK da app. Este passo gera o ficheiro gradlew.
           flutter clean
           flutter build apk --debug
           
-          # Entra na pasta android, dá permissão e constrói o APK de teste.
+          # Agora, entra na pasta android, dá permissão e constrói o APK de teste.
           cd android
           chmod +x ./gradlew
           ./gradlew app:assembleAndroidTest
           
           # IMPORTANTE: Volta para o diretório raiz para os próximos passos.
           cd ..
-
-      - name: 5a. Listar ficheiros de output para depuração
-        run: ls -R android/app/build/outputs/
 
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
@@ -59,8 +56,8 @@ jobs:
         run: |
           gcloud firebase test android run \
             --type instrumentation \
-            --app build/app/outputs/flutter-apk/app-debug.apk \
-            --test android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            --app ${{ github.workspace }}/build/app/outputs/flutter-apk/app-debug.apk \
+            --test ${{ github.workspace }}/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
             --device model=akita,version=34 \
             --timeout 5m
 
@@ -70,7 +67,7 @@ jobs:
       - name: 9. Distribuir para QA via Firebase App Distribution
         if: success()
         run: |
-          firebase appdistribution:distribute build/app/outputs/flutter-apk/app-debug.apk \
+          firebase appdistribution:distribute ${{ github.workspace }}/build/app/outputs/flutter-apk/app-debug.apk \
             --app "1:424599350937:android:5c7fd412fffd453bcb5208" \
             --release-notes "Build do CI" \
             --groups "qa-team" \
