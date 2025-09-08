@@ -1,11 +1,12 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // O Plugin Gradle do Flutter deve ser aplicado após os plugins Gradle do Android e Kotlin.
     id("dev.flutter.flutter-gradle-plugin")
+    // START: Configuração do FlutterFire
+    // O plugin google-services deve ser o último plugin aplicado.
+    id("com.google.gms.google-services")
+    // END: Configuração do FlutterFire
 }
 
 android {
@@ -48,14 +49,9 @@ dependencies {
     // Firebase BoM (Bill of Materials) - Garante versões compatíveis
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    // Dependência de extensões KTX, necessária para a inicialização
-    implementation("com.google.firebase:firebase-common-ktx")
-
-    // Adicionado explicitamente para garantir que a classe 'Firebase' seja encontrada
-    implementation("com.google.firebase:firebase-core")
-
-    // Dependência do Firebase Analytics (que também depende do core)
-    implementation("com.google.firebase:firebase-analytics")
+    // Dependência do Firebase Analytics (versão KTX)
+    // A BoM garantirá que as dependências transitivas como core e common-ktx sejam incluídas.
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Dependências para testes de instrumentação
     testImplementation("junit:junit:4.13.2")
