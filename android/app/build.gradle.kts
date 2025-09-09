@@ -1,8 +1,9 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    // O plugin do Flutter deve ser aplicado depois dos outros
     id("dev.flutter.flutter-gradle-plugin")
-    // O plugin do google-services é aplicado aqui
+    // O plugin do Google Services deve ser o último
     id("com.google.gms.google-services")
 }
 
@@ -27,14 +28,20 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Configuração para o executor de testes de instrumentação.
+        // Configuração do executor de testes do Android
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+
+    // Configuração para usar o Orquestrador de Testes
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 }
 
@@ -46,14 +53,13 @@ dependencies {
     // Importa o Firebase Bill of Materials (BoM)
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    // Adiciona as dependências do Firebase que você precisa, sem especificar a versão
+    // Adiciona as dependências do Firebase que a sua aplicação usa
     implementation("com.google.firebase:firebase-analytics")
 
-    // Adiciona as dependências de teste necessárias com as versões corrigidas
-    testImplementation("junit:junit:4.13.2")
-    // Adiciona a dependência core-ktx para resolver o problema do manifesto
-    androidTestImplementation("androidx.test:core-ktx:1.6.1")
-    androidTestImplementation("androidx.test.ext:junit:1.1.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    // Dependências para os testes de instrumentação e o Orquestrador
+    androidTestImplementation("androidx.test:runner:1.6.1")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestUtil("androidx.test:orchestrator:1.5.0")
 }
 
