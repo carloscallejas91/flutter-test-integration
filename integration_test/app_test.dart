@@ -4,6 +4,7 @@ import 'package:integration_test/integration_test.dart';
 
 // 1. DESCOMENTE A LINHA ABAIXO E AJUSTE O CAMINHO PARA O SEU main.dart
 import 'package:test_integration_app/main.dart' as app;
+import 'package:test_integration_app/main.dart';
 
 void main() {
   // Garante que o binding de integração está inicializado.
@@ -13,8 +14,19 @@ void main() {
   // binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
   group('Teste de ponta a ponta', () {
-    testWidgets('App inicia e mostra a página inicial', (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: app.MyApp()));
+    testWidgets('App inicia e mostra a página inicial', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          title: 'Flutter Demo',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+          ),
+          home: const MyHomePage(title: 'Flutter Demo Home Page'),
+        ),
+      );
 
       // Aguarda que a aplicação se estabilize (não haja mais frames a serem desenhados).
       await tester.pumpAndSettle();
@@ -25,4 +37,3 @@ void main() {
     });
   });
 }
-
