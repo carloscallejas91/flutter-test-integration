@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -6,15 +7,14 @@ import 'package:test_integration_app/main.dart' as app;
 
 void main() {
   // Garante que o binding de integração está inicializado.
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   // O FlutterTestPlayer ajuda a prevenir ANRs no Firebase Test Lab.
   // binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
   group('Teste de ponta a ponta', () {
     testWidgets('App inicia e mostra a página inicial', (WidgetTester tester) async {
-      // 2. DESCOMENTE A LINHA ABAIXO PARA INICIAR A SUA APLICAÇÃO
-      app.main();
+      await tester.pumpWidget(const MaterialApp(home: app.MyApp()));
 
       // Aguarda que a aplicação se estabilize (não haja mais frames a serem desenhados).
       await tester.pumpAndSettle();
