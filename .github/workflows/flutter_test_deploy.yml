@@ -67,7 +67,7 @@ jobs:
             --type instrumentation \
             --app artifacts/app-debug.apk \
             --test artifacts/app-debug-androidTest.apk \
-            --device model=Medium.phone.arm,version=34,locale=en,orientation=portrait \
+            --device model=caiman,version=34 \
             --test-targets "class com.test_integration.test_integration_app.app_test"
 
       - name: 8a. Instalar Firebase CLI Tools
