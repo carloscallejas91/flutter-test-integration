@@ -9,7 +9,7 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   // O FlutterTestPlayer ajuda a prevenir ANRs no Firebase Test Lab.
-  binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
+  // binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
   group('Teste de ponta a ponta', () {
     testWidgets('App inicia e mostra a página inicial', (WidgetTester tester) async {
