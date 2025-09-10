@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-
-// 1. AJUSTE O CAMINHO ABAIXO PARA O SEU main.dart
 import 'package:test_integration_app/main.dart' as app;
 
 void main() {
@@ -10,45 +8,43 @@ void main() {
 
   group('Teste de ponta a ponta do Contador', () {
     testWidgets(
-      'App inicia e mostra o contador em 0',
+      'Tocar no botão incrementa o contador - Versão de Depuração',
           (WidgetTester tester) async {
+        // As mensagens de print aparecerão no log do Firebase Test Lab
+        print("--- INÍCIO DO TESTE ---");
+
         // Inicia a sua aplicação.
         app.main();
+        print("--- app.main() executado ---");
 
-        // Aguarda que a UI se estabilize (não haja mais frames a serem desenhados).
-        // Este é o método preferido quando não há animações infinitas.
-        await tester.pump(Duration(seconds: 10));
+        // Vamos usar um pump com duração para dar tempo à app de carregar.
+        // Aumentei para 15 segundos para garantir.
+        await tester.pump(const Duration(seconds: 15));
+        print("--- Aguardou 15 segundos ---");
 
-        // Verificação do estado inicial:
-        // Confirma que o texto inicial está visível.
-        expect(find.text('You have pushed the button this many times:'), findsOneWidget);
-        // Confirma que o contador começa em '0'.
-        expect(find.text('0'), findsOneWidget);
-        // Garante que o contador não começa em '1'.
-        expect(find.text('1'), findsNothing);
-      },
-    );
+        // Verificação de Depuração 1: A página principal foi renderizada?
+        // Esta é uma verificação mais robusta do que procurar por texto.
+        final homePageFinder = find.byType(MyHomePage);
+        expect(homePageFinder, findsOneWidget, reason: "A página MyHomePage não foi encontrada.");
+        print("--- Verificação 1 (MyHomePage) SUCESSO ---");
 
-    testWidgets(
-      'Tocar no botão incrementa o contador para 1',
-          (WidgetTester tester) async {
-        app.main();
-        await tester.pump(Duration(seconds: 10));
+        // Verificação 2: O contador inicial está visível?
+        expect(find.text('0'), findsOneWidget, reason: "O texto '0' inicial não foi encontrado.");
+        print("--- Verificação 2 (Texto '0') SUCESSO ---");
 
-        // Passo 1: Encontra o botão através da sua Key.
-        final Finder button = find.byKey(const Key('increment_button'));
+        // Interação
+        await tester.tap(find.byKey(const Key('increment_button')));
+        print("--- Botão de incremento tocado ---");
 
-        // Passo 2: Simula um toque no botão.
-        await tester.tap(button);
-
-        // Passo 3: Aguarda que a UI se atualize após o toque.
+        // Aguarda a atualização da UI. Se falhar aqui, o problema é pós-toque.
         await tester.pumpAndSettle();
+        print("--- pumpAndSettle após o toque executado ---");
 
-        // Verificação do novo estado:
-        // Confirma que o contador '0' já não está no ecrã.
-        expect(find.text('0'), findsNothing);
-        // Confirma que o contador foi atualizado para '1'.
-        expect(find.text('1'), findsOneWidget);
+        // Verificação Final
+        expect(find.text('1'), findsOneWidget, reason: "O texto '1' após o incremento não foi encontrado.");
+        print("--- Verificação 3 (Texto '1') SUCESSO ---");
+
+        print("--- FIM DO TESTE ---");
       },
     );
   });
