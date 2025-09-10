@@ -54,11 +54,12 @@ dependencies {
     // Dependência principal do Analytics, que já inclui as extensões KTX.
     implementation("com.google.firebase:firebase-analytics")
 
-    // Dependências de Teste (conjunto moderno e consistente)
+    // Dependências de Teste (conjunto consistente com as restrições do projeto)
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.6.1")
+    // CORREÇÃO: Força o uso das versões mais antigas para resolver o conflito.
+    androidTestImplementation("androidx.test:runner:1.2.0")
     androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
 
     // Dependências para o Orquestrador de Testes
     androidTestUtil("androidx.test:orchestrator:1.5.0")
