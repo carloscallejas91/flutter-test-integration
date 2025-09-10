@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:test_integration_app/main.dart' as app;
 
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -24,7 +25,7 @@ void main() {
 
         // Verificação de Depuração 1: A página principal foi renderizada?
         // Esta é uma verificação mais robusta do que procurar por texto.
-        final homePageFinder = find.byType(MyHomePage);
+        final homePageFinder = find.byType(app.MyHomePage);
         expect(homePageFinder, findsOneWidget, reason: "A página MyHomePage não foi encontrada.");
         print("--- Verificação 1 (MyHomePage) SUCESSO ---");
 

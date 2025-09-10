@@ -1,6 +1,6 @@
 package com.test_integration.test_integration_app
 
-import androidx.test.rule.ActivityTestRule
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import dev.flutter.plugins.integration_test.FlutterTestRunner
 import org.junit.Rule
 import org.junit.runner.RunWith
@@ -9,5 +9,6 @@ import org.junit.runner.RunWith
 class MainActivityTest {
     @Rule
     @JvmField
-    var rule: ActivityTestRule<MainActivity> = ActivityTestRule(MainActivity::class.java, true, false)
+    val rule = ActivityScenarioRule(MainActivity::class.java)
 }
+

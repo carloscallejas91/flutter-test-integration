@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    // O plugin do google-services é aplicado aqui
     id("com.google.gms.google-services")
 }
 
@@ -26,8 +25,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // Configuração para o executor de testes de instrumentação.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -43,18 +40,15 @@ flutter {
 }
 
 dependencies {
-    // Importa o Firebase Bill of Materials (BoM)
+    // Firebase Bill of Materials (BoM) - Gerencia as versões das bibliotecas do Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    // Adiciona as dependências do Firebase que você precisa, sem especificar a versão
+    // CORREÇÃO: Usa a dependência principal do Analytics, que já inclui as extensões KTX.
     implementation("com.google.firebase:firebase-analytics")
 
-    // Adiciona as dependências de teste necessárias com as versões corrigidas
+    // Dependências de Teste
     testImplementation("junit:junit:4.13.2")
-    // Adiciona a dependência core-ktx para resolver o problema do manifesto
-    androidTestImplementation("androidx.test:runner:1.2.0")
-    androidTestImplementation("androidx.test:core-ktx:1.6.1")
-//    androidTestImplementation("androidx.test.ext:junit:1.1.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }
 
