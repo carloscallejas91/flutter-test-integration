@@ -26,12 +26,20 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Ativa argumentos para o Orquestrador
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+
+    // Configuração para usar o Orquestrador de Testes
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 }
 
@@ -43,12 +51,15 @@ dependencies {
     // Firebase Bill of Materials (BoM) - Gerencia as versões das bibliotecas do Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    // CORREÇÃO: Usa a dependência principal do Analytics, que já inclui as extensões KTX.
+    // Dependência principal do Analytics, que já inclui as extensões KTX.
     implementation("com.google.firebase:firebase-analytics")
 
-    // Dependências de Teste
+    // Dependências de Teste (versões modernas e compatíveis com o Orquestrador)
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+
+    // Dependências para o Orquestrador de Testes
+    androidTestUtil("androidx.test:orchestrator:1.5.0")
 }
 
