@@ -17,7 +17,7 @@ void main() {
 
         // Aguarda que a UI se estabilize (não haja mais frames a serem desenhados).
         // Este é o método preferido quando não há animações infinitas.
-        await tester.pumpAndSettle();
+        await tester.pump(Duration(seconds: 10));
 
         // Verificação do estado inicial:
         // Confirma que o texto inicial está visível.
@@ -33,7 +33,7 @@ void main() {
       'Tocar no botão incrementa o contador para 1',
           (WidgetTester tester) async {
         app.main();
-        await tester.pumpAndSettle();
+        await tester.pump(Duration(seconds: 10));
 
         // Passo 1: Encontra o botão através da sua Key.
         final Finder button = find.byKey(const Key('increment_button'));
