@@ -1,28 +1,56 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-// 1. DESCOMENTE A LINHA ABAIXO E AJUSTE O CAMINHO PARA O SEU main.dart
+// 1. AJUSTE O CAMINHO ABAIXO PARA O SEU main.dart
 import 'package:test_integration_app/main.dart' as app;
 
 void main() {
-  // Garante que o binding de integração está inicializado.
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // O FlutterTestPlayer ajuda a prevenir ANRs no Firebase Test Lab.
-  binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
+  group('Teste de ponta a ponta do Contador', () {
+    testWidgets(
+      'App inicia e mostra o contador em 0',
+          (WidgetTester tester) async {
+        // Inicia a sua aplicação.
+        app.main();
 
-  group('Teste de ponta a ponta', () {
-    testWidgets('App inicia e mostra a página inicial', (WidgetTester tester) async {
-      // 2. DESCOMENTE A LINHA ABAIXO PARA INICIAR A SUA APLICAÇÃO
-      app.main();
+        // Aguarda que a UI se estabilize (não haja mais frames a serem desenhados).
+        // Este é o método preferido quando não há animações infinitas.
+        await tester.pumpAndSettle();
 
-      // Aguarda que a aplicação se estabilize (não haja mais frames a serem desenhados).
-      await tester.pumpAndSettle();
+        // Verificação do estado inicial:
+        // Confirma que o texto inicial está visível.
+        expect(find.text('You have pushed the button this many times:'), findsOneWidget);
+        // Confirma que o contador começa em '0'.
+        expect(find.text('0'), findsOneWidget);
+        // Garante que o contador não começa em '1'.
+        expect(find.text('1'), findsNothing);
+      },
+    );
 
-      // 3. ALTERE O TEXTO ABAIXO para um texto que realmente apareça no ecrã inicial da sua app.
-      //    Este é o ponto de verificação do seu teste.
-      expect(find.text('Flutter Demo Home Page'), findsOneWidget);
-    });
+    testWidgets(
+      'Tocar no botão incrementa o contador para 1',
+          (WidgetTester tester) async {
+        app.main();
+        await tester.pumpAndSettle();
+
+        // Passo 1: Encontra o botão através da sua Key.
+        final Finder button = find.byKey(const Key('increment_button'));
+
+        // Passo 2: Simula um toque no botão.
+        await tester.tap(button);
+
+        // Passo 3: Aguarda que a UI se atualize após o toque.
+        await tester.pumpAndSettle();
+
+        // Verificação do novo estado:
+        // Confirma que o contador '0' já não está no ecrã.
+        expect(find.text('0'), findsNothing);
+        // Confirma que o contador foi atualizado para '1'.
+        expect(find.text('1'), findsOneWidget);
+      },
+    );
   });
 }
 
