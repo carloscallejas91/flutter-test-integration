@@ -5,13 +5,12 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// ADIÇÃO: Força a resolução de conflitos de versão das dependências de teste.
-// Isto garante que as versões modernas, compatíveis com o Orquestrador, sejam usadas.
 configurations.all {
     resolutionStrategy {
-        force("androidx.test:runner:1.6.1")
-        force("androidx.test.espresso:espresso-core:3.6.1")
-        force("androidx.test.ext:junit-ktx:1.2.1")
+        // força versões compatíveis para evitar conflitos entre integration_test e espresso/runner
+        force("androidx.test:runner:1.2.0")
+        force("androidx.test:rules:1.2.0")
+        force("androidx.test.espresso:espresso-core:3.2.0")
     }
 }
 
@@ -35,9 +34,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        //        testInstrumentationRunner = "dev.flutter.plugins.integration_test.FlutterTestRunner"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Ativa argumentos para o Orquestrador
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
@@ -64,13 +62,20 @@ dependencies {
     // Dependência principal do Analytics, que já inclui as extensões KTX.
     implementation("com.google.firebase:firebase-analytics")
 
+    // garante que as classes do integration_test (incluindo FlutterTestRunner) estejam
+    // embaladas no APK de teste
+    androidTestImplementation(project(":integration_test"))
+
     // Dependências de Teste (versões modernas e consistentes)
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.6.1")
-    androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test:rules:1.2.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
 
-    // Dependências para o Orquestrador de Testes
-    androidTestUtil("androidx.test:orchestrator:1.5.0")
+//    androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
+//    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+//
+//    // Dependências para o Orquestrador de Testes
+//    androidTestUtil("androidx.test:orchestrator:1.5.0")
 }
 
