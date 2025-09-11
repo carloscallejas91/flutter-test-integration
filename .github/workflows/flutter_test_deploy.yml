@@ -53,6 +53,47 @@ jobs:
             exit 1
           fi
 
+      - name: 5. Construir APK (app) e APK de testes (androidTest)
+        run: |
+          set -e
+
+          # Opcional: remova flutter clean para builds incrementais
+          flutter clean
+
+          # APK principal (app-debug.apk)
+          flutter build apk --debug
+
+          # APK de testes (instrumentation + integration_test)
+          cd android
+          chmod +x ./gradlew
+          ./gradlew app:assembleAndroidTest
+          cd ..
+
+          mkdir -p artifacts
+
+          # Copiar APK principal
+          if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+            cp build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
+          else
+            echo "APK principal não encontrado em build/app/outputs/flutter-apk/app-debug.apk"
+            exit 1
+          fi
+
+          # Copiar APK de testes (path conhecido ou encontrar dinamicamente)
+          TEST_APK_PATH="build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          if [ -f "$TEST_APK_PATH" ]; then
+            cp "$TEST_APK_PATH" artifacts/app-debug-androidTest.apk
+          else
+            FOUND=$(find build -type f -name "*androidTest*.apk" | head -n 1 || true)
+            if [ -n "$FOUND" ]; then
+              echo "Encontrado APK de testes em: $FOUND"
+              cp "$FOUND" artifacts/app-debug-androidTest.apk
+            else
+              echo "Nenhum APK de testes encontrado em build/ - falhando."
+              exit 1
+            fi
+          fi
+
       - name: 5a. Inspecionar APK de testes (procura FlutterTestRunner dentro de classes.dex)
         run: |
           echo "Listando conteúdo (primeiras 200 linhas):"
@@ -68,18 +109,6 @@ jobs:
             echo " - Confirme que android/app/build.gradle* tem androidTestImplementation(project(':integration_test'))"
             echo " - Rode localmente: ./gradlew app:assembleAndroidTest e execute unzip -p path/classes.dex | strings | grep FlutterTestRunner"
             echo "Conteúdo do APK (para debug):"
-            unzip -l artifacts/app-debug-androidTest.apk
-            exit 1
-          fi
-
-      - name: 5a. Inspecionar APK de testes
-        run: |
-          echo "Listando conteúdo do APK de testes (primeiras 200 linhas):"
-          unzip -l artifacts/app-debug-androidTest.apk | sed -n '1,200p'
-          if unzip -l artifacts/app-debug-androidTest.apk | grep -E "dev/flutter/plugins/integration_test|FlutterTestRunner" -i >/dev/null; then
-            echo "OK: FlutterTestRunner / integration_test encontrado no APK de testes."
-          else
-            echo "ERRO: FlutterTestRunner / integration_test NÃO encontrado no APK de testes."
             unzip -l artifacts/app-debug-androidTest.apk
             exit 1
           fi
