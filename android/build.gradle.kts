@@ -5,10 +5,6 @@ plugins {
     id("com.google.gms.google-services") apply false
 }
 
-include ':integration_test'
-project(':integration_test').projectDir = new File(rootProject.projectDir, '../integration_test')
-
-
 allprojects {
     repositories {
         google()
