@@ -51,7 +51,7 @@ jobs:
           mv build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
 
           # APK de testes (androidTest)
-          mv android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/app-debug-androidTest.apk
+          mv build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/app-debug-androidTest.apk
       
 
       - name: 6. Autenticar com o Google Cloud
