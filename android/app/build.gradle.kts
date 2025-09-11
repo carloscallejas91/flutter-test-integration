@@ -5,6 +5,16 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+// ADIÇÃO: Força a resolução de conflitos de versão das dependências de teste.
+// Isto garante que as versões modernas, compatíveis com o Orquestrador, sejam usadas.
+configurations.all {
+    resolutionStrategy {
+        force("androidx.test:runner:1.6.1")
+        force("androidx.test.espresso:espresso-core:3.6.1")
+        force("androidx.test.ext:junit-ktx:1.2.1")
+    }
+}
+
 android {
     namespace = "com.test_integration.test_integration_app"
     compileSdk = flutter.compileSdkVersion
@@ -54,12 +64,11 @@ dependencies {
     // Dependência principal do Analytics, que já inclui as extensões KTX.
     implementation("com.google.firebase:firebase-analytics")
 
-    // Dependências de Teste (conjunto consistente com as restrições do projeto)
+    // Dependências de Teste (versões modernas e consistentes)
     testImplementation("junit:junit:4.13.2")
-    // CORREÇÃO: Força o uso das versões mais antigas para resolver o conflito.
-    androidTestImplementation("androidx.test:runner:1.2.0")
+    androidTestImplementation("androidx.test:runner:1.6.1")
     androidTestImplementation("androidx.test.ext:junit-ktx:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.2.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 
     // Dependências para o Orquestrador de Testes
     androidTestUtil("androidx.test:orchestrator:1.5.0")
