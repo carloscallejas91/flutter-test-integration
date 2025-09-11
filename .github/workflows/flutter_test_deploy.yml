@@ -2,7 +2,8 @@ name: Flutter CI/CD - Test Lab & App Distribution
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build_test_and_distribute:
@@ -16,14 +17,14 @@ jobs:
       - name: 2. Configurar o Java (JDK)
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: 3. Configurar o Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.2'
-          channel: 'stable'
+          channel: stable
           cache: true
 
       - name: 4. Instalar dependências
@@ -32,44 +33,39 @@ jobs:
       - name: 4a. Criar o ficheiro google-services.json a partir do Secret
         run: |
           mkdir -p android/app
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
 
       - name: 5. Construir APK (app) e APK de testes (androidTest)
-        env:
-        # opcional: descomente se quiser forçar o gradle a usar menos memória
-        # ORG_GRADLE_PROJECT_org_gradle_jvmargs: "-Xmx1536m"
         run: |
           set -e
 
-          # (Opcional) remova 'flutter clean' para builds incrementais no CI se preferir
+          # Opcional: remova flutter clean para builds incrementais
           flutter clean
 
-          # 1) APK principal (app-debug.apk)
+          # APK principal (app-debug.apk)
           flutter build apk --debug
 
-          # 2) APK de instrumented tests (app-debug-androidTest.apk)
+          # APK de testes (instrumentation + integration_test)
           cd android
           chmod +x ./gradlew
           ./gradlew app:assembleAndroidTest
           cd ..
 
-          # 3) Preparar artifacts
           mkdir -p artifacts
 
-          # 4) Copiar APK principal
+          # Copiar APK principal
           if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
             cp build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
           else
-            echo "APK principal não encontrado no caminho esperado: build/app/outputs/flutter-apk/app-debug.apk"
+            echo "APK principal não encontrado em build/app/outputs/flutter-apk/app-debug.apk"
             exit 1
           fi
 
-          # 5) Tentar copiar APK de testes por path conhecido, senão procurar dinamicamente
+          # Copiar APK de testes (path conhecido ou encontrar dinamicamente)
           TEST_APK_PATH="build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
           if [ -f "$TEST_APK_PATH" ]; then
             cp "$TEST_APK_PATH" artifacts/app-debug-androidTest.apk
           else
-            echo "APK de testes não encontrado em $TEST_APK_PATH — procurando em build/ ..."
             FOUND=$(find build -type f -name "*androidTest*.apk" | head -n 1 || true)
             if [ -n "$FOUND" ]; then
               echo "Encontrado APK de testes em: $FOUND"
@@ -80,63 +76,25 @@ jobs:
             fi
           fi
 
-      - name: 5a. Inspecionar APK de testes (verificar runner/integration_test)
+      - name: 5a. Inspecionar APK de testes
         run: |
-          set -e
           echo "Listando conteúdo do APK de testes (primeiras 200 linhas):"
           unzip -l artifacts/app-debug-androidTest.apk | sed -n '1,200p'
-          echo "Procurando por FlutterTestRunner / integration_test nas entradas do APK..."
           if unzip -l artifacts/app-debug-androidTest.apk | grep -E "dev/flutter/plugins/integration_test|FlutterTestRunner" -i >/dev/null; then
             echo "OK: FlutterTestRunner / integration_test encontrado no APK de testes."
           else
             echo "ERRO: FlutterTestRunner / integration_test NÃO encontrado no APK de testes."
-            echo "Conteúdo completo do APK para debug:"
             unzip -l artifacts/app-debug-androidTest.apk
             exit 1
           fi
 
-      - name: 5b. Upload de artifacts (APK principal e APK de teste) — para debug / download
+      - name: 5b. Upload de artifacts (APK principal e APK de teste)
         uses: actions/upload-artifact@v4
         with:
           name: android-apks
           path: artifacts/*.apk
 
-      - name: 6. Instalar e autenticar gcloud (SDK + credenciais)
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: test-integration-app-4e52e
-
-      - name: 7. Confirmar configuração do gcloud
-        run: |
-          gcloud config list
-          gcloud auth list
-
-      - name: 8. Executar testes no Firebase Test Lab
-        # se quiser depurar sem Orchestrator, remova o --use-orchestrator aqui temporariamente
-        run: |
-          set -e
-          gcloud firebase test android run \
-            --type instrumentation \
-            --app artifacts/app-debug.apk \
-            --test artifacts/app-debug-androidTest.apk \
-            --device model=caiman,version=34 \
-            --use-orchestrator
-
-      - name: 8a. Instalar Firebase CLI Tools
-        run: npm install -g firebase-tools
-
-      - name: 9. Distribuir para QA via Firebase App Distribution
-        if: success()
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: |
-          firebase appdistribution:distribute artifacts/app-debug.apk \
-            --app "1:424599350937:android:5c7fd412fffd453bcb5208" \
-            --release-notes "Build do CI" \
-            --groups "qa-team" \
-            --token "$FIREBASE_TOKEN"
-
+      - name: 6. Instalar e au
 
 
 #name: Flutter CI/CD - Test Lab & App Distribution
