@@ -35,12 +35,24 @@ jobs:
       - name: 5. Construir e Mover APKs
         run: |
           flutter clean
+
+          # APK principal da app
           flutter build apk --debug
-          flutter build apk --debug --target integration_test/app_test.dart
-          
+
+          # APK de testes (instrumentation + integration_test)
+          cd android
+          chmod +x ./gradlew
+          ./gradlew app:assembleAndroidTest
+          cd ..
+
           mkdir -p artifacts
+
+          # APK da aplicação
           mv build/app/outputs/flutter-apk/app-debug.apk artifacts/app-debug.apk
-          mv build/app/outputs/apk/debug/app-debug-androidTest.apk artifacts/app-debug-androidTest.apk
+
+          # APK de testes (androidTest)
+          mv android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk artifacts/app-debug-androidTest.apk
+      
 
       - name: 6. Autenticar com o Google Cloud
         uses: google-github-actions/auth@v2
