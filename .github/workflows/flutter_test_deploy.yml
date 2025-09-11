@@ -30,10 +30,28 @@ jobs:
       - name: 4. Instalar dependências
         run: flutter pub get
 
-      - name: 4a. Criar o ficheiro google-services.json a partir do Secret
+      - name: 4a. Validar android/app/google-services.json no repositório (obrigatório)
+        shell: bash
         run: |
-          mkdir -p android/app
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > android/app/google-services.json
+          set -euo pipefail
+          GFILE="android/app/google-services.json"
+
+          if [ -f "$GFILE" ] && [ -s "$GFILE" ]; then
+            echo "Encontrado google-services.json no repositório: $GFILE"
+          else
+            echo "ERRO: google-services.json não encontrado em android/app/."
+            echo "Este workflow foi configurado para usar somente o arquivo presente no projeto."
+            echo "Coloque o arquivo em android/app/google-services.json e reenvie."
+            exit 1
+          fi
+
+          # Validar JSON (sem imprimir o conteúdo)
+          if python -m json.tool "$GFILE" >/dev/null 2>&1; then
+            echo "Validação JSON: OK"
+          else
+            echo "ERRO: google-services.json inválido. Verifique o arquivo em android/app/google-services.json"
+            exit 1
+          fi
 
       - name: 5. Construir APK (app) e APK de testes (androidTest)
         run: |
