@@ -94,7 +94,41 @@ jobs:
           name: android-apks
           path: artifacts/*.apk
 
-      - name: 6. Instalar e au
+      - name: 6. Instalar e autenticar gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: test-integration-app-4e52e
+
+      - name: 7. Confirmar configuração do gcloud
+        run: |
+          gcloud config list
+          gcloud auth list
+
+      - name: 8. Executar testes no Firebase Test Lab
+        run: |
+          set -e
+          gcloud firebase test android run \
+            --type instrumentation \
+            --app artifacts/app-debug.apk \
+            --test artifacts/app-debug-androidTest.apk \
+            --device model=caiman,version=34 \
+            --use-orchestrator
+
+      - name: 8a. Instalar Firebase CLI Tools
+        run: npm install -g firebase-tools
+
+      - name: 9. Distribuir para QA via Firebase App Distribution
+        if: success()
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase appdistribution:distribute artifacts/app-debug.apk \
+            --app "1:424599350937:android:5c7fd412fffd453bcb5208" \
+            --release-notes "Build do CI" \
+            --groups "qa-team" \
+            --token "$FIREBASE_TOKEN"
+
 
 
 #name: Flutter CI/CD - Test Lab & App Distribution
